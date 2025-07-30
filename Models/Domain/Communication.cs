@@ -2,7 +2,7 @@ public class Communication
 {
     public int Id { get; set; }
     public string Title { get; set; } // "John Doe - EOB Q3 2024"
-    public string TypeCode { get; set; }  // "EOB", "EOP", "ID_CARD"
+    public required string TypeCode { get; set; }  // "EOB", "EOP", "ID_CARD"
     public string CurrentStatus { get; set; } // "Printed", "InTransit"
     public DateTime CreatedUtc { get; set; }
     public DateTime LastUpdatedUtc { get; set; }
