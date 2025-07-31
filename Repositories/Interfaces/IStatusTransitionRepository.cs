@@ -4,5 +4,9 @@ namespace TSG_Commex_BE.Repositories.Interfaces;
 
 public interface IStatusTransitionRepository
 {
-    // TODO: Add your method signatures here
+    // Task<IEnumerable<StatusTransition>> GetValidTransitionsFromStatusAsync();
+
+    // Task<> CreateWorkflowAsync(string typeCode, List<StatusTransition> transitions);
+
+    // Task<> GetWorkflowSequenceAsync(string typeCode);
 }

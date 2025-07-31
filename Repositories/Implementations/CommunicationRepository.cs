@@ -13,6 +13,24 @@ public class CommunicationRepository : ICommunicationRepository
     {
         _context = context;
     }
+    public async Task<IEnumerable<Communication>> GetAllAsync()
+    {
+        return await _context.Communications.ToListAsync();
+
+        //     return await _context.Communications
+        // .Include(c => c.CommunicationType)
+        // .OrderByDescending(c => c.LastUpdatedUtc)
+        // .Skip((page - 1) * pageSize)
+        // .Take(pageSize)
+        // .ToListAsync();
+    }
+
+    public async Task<Communication> CreateAsync(Communication communication)
+    {
+        _context.Communications.Add(communication);
+        await _context.SaveChangesAsync();
+        return communication;
+    }
 
     // TODO: Implement all interface methods
 }
