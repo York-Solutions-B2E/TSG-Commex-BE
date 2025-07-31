@@ -44,7 +44,8 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<Communication>()
             .HasOne<GlobalStatus>()
             .WithMany(gs => gs.Communications)
-            .HasForeignKey(c => c.CurrentStatus);
+            .HasForeignKey(c => c.CurrentStatus)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // StatusTransition relationships
         modelBuilder.Entity<StatusTransition>()
@@ -68,18 +69,20 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<CommunicationStatusHistory>()
             .HasOne(csh => csh.Communication)
             .WithMany(c => c.StatusHistory)
-            .HasForeignKey(csh => csh.CommunicationId);
+            .HasForeignKey(csh => csh.CommunicationId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<CommunicationStatusHistory>()
             .HasOne<GlobalStatus>()
             .WithMany(gs => gs.StatusHistories)
-            .HasForeignKey(csh => csh.StatusCode);
+            .HasForeignKey(csh => csh.StatusCode)
+            .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<CommunicationStatusHistory>()
             .HasOne<StatusTransition>()
             .WithMany(st => st.StatusHistories)
             .HasForeignKey(csh => csh.TransitionId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Constraints
         modelBuilder.Entity<StatusTransition>()

@@ -7,6 +7,7 @@ public class CommunicationType
     public required string Description { get; set; }
     public bool IsActive { get; set; }
 
-    public List<CommunicationTypeStatus> ValidStatuses { get; set; }
-    public List<Communication> Communications { get; set; }
+    // Navigation properties
+    public List<Communication> Communications { get; set; } = new();
+    // Note: StatusTransitions are now handled separately - no direct navigation needed
 }
