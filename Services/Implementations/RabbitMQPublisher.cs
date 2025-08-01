@@ -5,6 +5,8 @@ using System.Text.Json;
 using TSG_Commex_BE.Configuration;
 using TSG_Commex_BE.DTOs.Events;
 using TSG_Commex_BE.Services.Interfaces;
+using Pastel;
+using System.Drawing;
 
 namespace TSG_Commex_BE.Services.Implementations;
 
@@ -44,7 +46,9 @@ public class RabbitMQPublisher : IRabbitMQPublisher, IDisposable
         await _channel.QueueDeclareAsync(_settings.QueueName, durable: true, exclusive: false, autoDelete: false);
         await _channel.QueueBindAsync(_settings.QueueName, _settings.ExchangeName, "communication.*");
 
-        _logger.LogInformation("RabbitMQ connection established");
+        var connectionMessage = "🔗 RabbitMQ Publisher connection established successfully!".Pastel(Color.LimeGreen);
+        _logger.LogInformation(connectionMessage);
+        Console.WriteLine($"{"[PUBLISHER]".Pastel(Color.Cyan)} {connectionMessage}");
     }
 
     public async Task PublishAsync<T>(T eventData, string routingKey = "") where T : class
@@ -80,12 +84,15 @@ public class RabbitMQPublisher : IRabbitMQPublisher, IDisposable
                 body: body
             );
 
-            _logger.LogInformation("Published event {EventType} with routing key {RoutingKey}",
-                typeof(T).Name, routingKey);
+            var publishedMessage = $"📤 Published event {typeof(T).Name} with routing key: {routingKey}".Pastel(Color.LimeGreen);
+            _logger.LogInformation(publishedMessage);
+            Console.WriteLine($"{"[PUBLISHED]".Pastel(Color.Cyan)} {publishedMessage}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to publish event {EventType}", typeof(T).Name);
+            var errorMessage = $"💥 Failed to publish event {typeof(T).Name}: {ex.Message}".Pastel(Color.Red);
+            _logger.LogError(ex, errorMessage);
+            Console.WriteLine($"{"[ERROR]".Pastel(Color.Red)} {errorMessage}");
             throw;
         }
     }

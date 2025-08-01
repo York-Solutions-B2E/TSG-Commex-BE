@@ -6,6 +6,8 @@ using System.Text.Json;
 using TSG_Commex_BE.Configuration;
 using TSG_Commex_BE.DTOs.Events;
 using TSG_Commex_BE.Services.Interfaces;
+using Pastel;
+using System.Drawing;
 
 namespace TSG_Commex_BE.Services.Implementations;
 
@@ -64,11 +66,15 @@ public class RabbitMQConsumer : IRabbitMQConsumer, IDisposable
             );
 
 
-            _logger.LogInformation("RabbitMQ Consumer started. Queue: {Queue}", _settings.QueueName);
+            var startedMessage = $"🎯 RabbitMQ Consumer started successfully! Listening on queue: {_settings.QueueName}".Pastel(Color.LimeGreen);
+            _logger.LogInformation(startedMessage);
+            Console.WriteLine($"{"[CONSUMER]".Pastel(Color.Magenta)} {startedMessage}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to start RabbitMQ consumer");
+            var errorMessage = $"💥 Failed to start RabbitMQ consumer: {ex.Message}".Pastel(Color.Red);
+            _logger.LogError(ex, errorMessage);
+            Console.WriteLine($"{"[ERROR]".Pastel(Color.Red)} {errorMessage}");
             throw;
         }
     }
@@ -85,12 +91,15 @@ public class RabbitMQConsumer : IRabbitMQConsumer, IDisposable
             _channel?.Dispose();
             _connection?.Dispose();
 
-            _logger.LogInformation("RabbitMQ Consumer stopped");
+            var stoppedMessage = "🛑 RabbitMQ Consumer stopped gracefully".Pastel(Color.Orange);
+            _logger.LogInformation(stoppedMessage);
+            Console.WriteLine($"{"[CONSUMER]".Pastel(Color.Magenta)} {stoppedMessage}");
         }
         catch (Exception ex)
-
         {
-            _logger.LogError(ex, "Error stopping RabbitMQ consumer");
+            var errorMessage = $"💥 Error stopping RabbitMQ consumer: {ex.Message}".Pastel(Color.Red);
+            _logger.LogError(ex, errorMessage);
+            Console.WriteLine($"{"[ERROR]".Pastel(Color.Red)} {errorMessage}");
             throw;
         }
     }
@@ -102,7 +111,9 @@ public class RabbitMQConsumer : IRabbitMQConsumer, IDisposable
             var body = ea.Body.ToArray();
             var message = Encoding.UTF8.GetString(body);
 
-            _logger.LogInformation("Processing message with routing key: {RoutingKey}", ea.RoutingKey);
+            var processingMessage = $"📨 Processing message with routing key: {ea.RoutingKey}".Pastel(Color.Cyan);
+            _logger.LogInformation(processingMessage);
+            Console.WriteLine($"{"[MESSAGE]".Pastel(Color.Yellow)} {processingMessage}");
 
             using var scope = _serviceProvider.CreateScope();
             var eventProcessingService = scope.ServiceProvider.GetRequiredService<IEventProcessingService>();
@@ -133,7 +144,9 @@ public class RabbitMQConsumer : IRabbitMQConsumer, IDisposable
                     break;
 
                 default:
-                    _logger.LogWarning("Unknown event type: {EventType}", eventType);
+                    var unknownMessage = $"❓ Unknown event type: {eventType}".Pastel(Color.Yellow);
+                    _logger.LogWarning(unknownMessage);
+                    Console.WriteLine($"{"[WARNING]".Pastel(Color.Yellow)} {unknownMessage}");
                     await _channel!.BasicAckAsync(ea.DeliveryTag, multiple: false);
                     return;
             }
@@ -141,17 +154,23 @@ public class RabbitMQConsumer : IRabbitMQConsumer, IDisposable
             if (processed)
             {
                 await _channel!.BasicAckAsync(ea.DeliveryTag, multiple: false);
-                _logger.LogInformation("Successfully processed event {EventType}", eventType);
+                var successMessage = $"✅ Successfully processed event: {eventType}".Pastel(Color.Green);
+                _logger.LogInformation(successMessage);
+                Console.WriteLine($"{"[SUCCESS]".Pastel(Color.Green)} {successMessage}");
             }
             else
             {
                 await _channel!.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true);
-                _logger.LogWarning("Failed to process event {EventType}, requeuing", eventType);
+                var failedMessage = $"❌ Failed to process event {eventType}, requeuing...".Pastel(Color.Red);
+                _logger.LogWarning(failedMessage);
+                Console.WriteLine($"{"[RETRY]".Pastel(Color.Orange)} {failedMessage}");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing RabbitMQ message");
+            var errorMessage = $"💥 Error processing RabbitMQ message: {ex.Message}".Pastel(Color.Red);
+            _logger.LogError(ex, errorMessage);
+            Console.WriteLine($"{"[ERROR]".Pastel(Color.Red)} {errorMessage}");
             await _channel!.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: true);
         }
     }
