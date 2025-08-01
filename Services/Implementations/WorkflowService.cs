@@ -5,16 +5,16 @@ namespace TSG_Commex_BE.Services.Implementations;
 
 public class WorkflowService : IWorkflowService
 {
-    private readonly IStatusTransitionRepository _statusTransitionRepository;
+    private readonly ICommunicationTypeStatusRepository _communicationTypeStatusRepository;
     private readonly IGlobalStatusRepository _globalStatusRepository;
     private readonly ICommunicationTypeRepository _communicationTypeRepository;
 
     public WorkflowService(
-        IStatusTransitionRepository statusTransitionRepository,
+        ICommunicationTypeStatusRepository communicationTypeStatusRepository,
         IGlobalStatusRepository globalStatusRepository,
         ICommunicationTypeRepository communicationTypeRepository)
     {
-        _statusTransitionRepository = statusTransitionRepository;
+        _communicationTypeStatusRepository = communicationTypeStatusRepository;
         _globalStatusRepository = globalStatusRepository;
         _communicationTypeRepository = communicationTypeRepository;
     }

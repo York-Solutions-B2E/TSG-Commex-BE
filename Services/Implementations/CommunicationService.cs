@@ -6,14 +6,14 @@ namespace TSG_Commex_BE.Services.Implementations;
 public class CommunicationService : ICommunicationService
 {
     private readonly ICommunicationRepository _communicationRepository;
-    private readonly IStatusTransitionRepository _statusTransitionRepository;
+    private readonly ICommunicationTypeStatusRepository _communicationTypeStatusRepository;
 
     public CommunicationService(
         ICommunicationRepository communicationRepository,
-        IStatusTransitionRepository statusTransitionRepository)
+        ICommunicationTypeStatusRepository communicationTypeStatusRepository)
     {
         _communicationRepository = communicationRepository;
-        _statusTransitionRepository = statusTransitionRepository;
+        _communicationTypeStatusRepository = communicationTypeStatusRepository;
     }
 
     // TODO: Implement all interface methods

@@ -15,4 +15,9 @@ public interface ICommunicationRepository
     Task<List<Communication>> GetByStatusAsync(string status);
 
     Task<List<Communication>> GetByTypeCode(string typeCode);
+
+    // Soft Delete Methods
+    Task<bool> RestoreAsync(int id);
+    Task<List<Communication>> GetDeletedAsync();
+    Task<bool> HardDeleteAsync(int id); // For admin use only
 }

@@ -17,10 +17,16 @@ public class Communication
     public DateTime LastUpdatedUtc { get; set; }
     public string? SourceFileUrl { get; set; }  // Mock URL to source document
     public string? MemberInfo { get; set; }     // "Member ID: 12345"
+    public bool IsActive { get; set; } = true; // Soft delete support
 
+    // User tracking
+    public int? CreatedByUserId { get; set; }
+    public int? LastUpdatedByUserId { get; set; }
 
     //Navigation properties
     public CommunicationType Type { get; set; }
+    public User? CreatedByUser { get; set; }
+    public User? LastUpdatedByUser { get; set; }
 
     [InverseProperty("Communication")] // clarifies back reference
     public List<CommunicationStatusHistory> StatusHistory { get; set; }

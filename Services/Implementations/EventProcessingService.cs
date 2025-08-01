@@ -6,14 +6,14 @@ namespace TSG_Commex_BE.Services.Implementations;
 public class EventProcessingService : IEventProcessingService
 {
     private readonly ICommunicationRepository _communicationRepository;
-    private readonly IStatusTransitionRepository _statusTransitionRepository;
+    private readonly ICommunicationTypeStatusRepository _communicationTypeStatusRepository;
 
     public EventProcessingService(
         ICommunicationRepository communicationRepository,
-        IStatusTransitionRepository statusTransitionRepository)
+        ICommunicationTypeStatusRepository communicationTypeStatusRepository)
     {
         _communicationRepository = communicationRepository;
-        _statusTransitionRepository = statusTransitionRepository;
+        _communicationTypeStatusRepository = communicationTypeStatusRepository;
     }
 
     // TODO: Implement all interface methods

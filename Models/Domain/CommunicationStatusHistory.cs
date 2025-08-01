@@ -10,8 +10,9 @@ public class CommunicationStatusHistory
     public DateTime OccurredUtc { get; set; }
     public string? Notes { get; set; }
     public string? EventSource { get; set; } // RabbitMQ, Manual, Simulator
-    public int? TransitionId { get; set; } // Optional: which rule was used
+    public int? UpdatedByUserId { get; set; } // Who made the change
 
     // Navigation properties
     public Communication Communication { get; set; } = null!;
+    public User? UpdatedByUser { get; set; }
 }

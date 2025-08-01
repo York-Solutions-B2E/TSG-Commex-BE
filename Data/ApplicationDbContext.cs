@@ -11,14 +11,23 @@ public class ApplicationDbContext : DbContext
     }
 
     // DbSets - one for each table
+    public DbSet<User> Users { get; set; }
     public DbSet<Communication> Communications { get; set; }
     public DbSet<CommunicationType> CommunicationTypes { get; set; }
     public DbSet<CommunicationStatusHistory> CommunicationStatusHistories { get; set; }
     public DbSet<GlobalStatus> GlobalStatuses { get; set; }
-    public DbSet<StatusTransition> StatusTransitions { get; set; }
+    public DbSet<CommunicationTypeStatus> CommunicationTypeStatuses { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // User configuration
+        modelBuilder.Entity<User>()
+            .HasKey(u => u.Id);
+
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.Email)
+            .IsUnique();
+
         // CommunicationType configuration
         modelBuilder.Entity<CommunicationType>()
             .HasKey(ct => ct.TypeCode);
@@ -31,9 +40,9 @@ public class ApplicationDbContext : DbContext
             .Property(gs => gs.Phase)
             .HasConversion<string>();
 
-        // StatusTransition configuration
-        modelBuilder.Entity<StatusTransition>()
-            .HasKey(st => st.Id);
+        // CommunicationTypeStatus configuration
+        modelBuilder.Entity<CommunicationTypeStatus>()
+            .HasKey(cts => new { cts.TypeCode, cts.StatusCode });
 
         // Communication relationships
         modelBuilder.Entity<Communication>()
@@ -47,23 +56,29 @@ public class ApplicationDbContext : DbContext
             .HasForeignKey(c => c.CurrentStatus)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // StatusTransition relationships
-        modelBuilder.Entity<StatusTransition>()
-            .HasOne(st => st.CommunicationType)
+        // Communication User relationships
+        modelBuilder.Entity<Communication>()
+            .HasOne(c => c.CreatedByUser)
+            .WithMany(u => u.CreatedCommunications)
+            .HasForeignKey(c => c.CreatedByUserId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<Communication>()
+            .HasOne(c => c.LastUpdatedByUser)
+            .WithMany(u => u.LastUpdatedCommunications)
+            .HasForeignKey(c => c.LastUpdatedByUserId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        // CommunicationTypeStatus relationships
+        modelBuilder.Entity<CommunicationTypeStatus>()
+            .HasOne(cts => cts.CommunicationType)
             .WithMany()
-            .HasForeignKey(st => st.TypeCode);
+            .HasForeignKey(cts => cts.TypeCode);
 
-        modelBuilder.Entity<StatusTransition>()
-            .HasOne(st => st.FromStatus)
-            .WithMany(gs => gs.FromTransitions)
-            .HasForeignKey(st => st.FromStatusCode)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        modelBuilder.Entity<StatusTransition>()
-            .HasOne(st => st.ToStatus)
-            .WithMany(gs => gs.ToTransitions)
-            .HasForeignKey(st => st.ToStatusCode)
-            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<CommunicationTypeStatus>()
+            .HasOne(cts => cts.GlobalStatus)
+            .WithMany()
+            .HasForeignKey(cts => cts.StatusCode);
 
         // StatusHistory relationships
         modelBuilder.Entity<CommunicationStatusHistory>()
@@ -79,18 +94,12 @@ public class ApplicationDbContext : DbContext
             .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<CommunicationStatusHistory>()
-            .HasOne<StatusTransition>()
-            .WithMany(st => st.StatusHistories)
-            .HasForeignKey(csh => csh.TransitionId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .HasOne(csh => csh.UpdatedByUser)
+            .WithMany(u => u.StatusHistoryEntries)
+            .HasForeignKey(csh => csh.UpdatedByUserId)
+            .OnDelete(DeleteBehavior.NoAction);
 
-        // Constraints
-        modelBuilder.Entity<StatusTransition>()
-            .HasIndex(st => new { st.TypeCode, st.FromStatusCode, st.ToStatusCode })
-            .IsUnique();
-
-        // Prevent self-referencing transitions
-        modelBuilder.Entity<StatusTransition>()
-            .ToTable(t => t.HasCheckConstraint("CK_NoSelfReference", "[FromStatusCode] != [ToStatusCode]"));
+        // Note: Global Query Filters removed to avoid relationship warnings
+        // Soft delete filtering will be handled manually in repositories
     }
 }

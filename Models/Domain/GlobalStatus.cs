@@ -14,7 +14,5 @@ public class GlobalStatus
     // Navigation properties
     public List<Communication> Communications { get; set; } = new();
     public List<CommunicationStatusHistory> StatusHistories { get; set; } = new();
-    public List<StatusTransition> FromTransitions { get; set; } = new();
-    public List<StatusTransition> ToTransitions { get; set; } = new();
 
 }
