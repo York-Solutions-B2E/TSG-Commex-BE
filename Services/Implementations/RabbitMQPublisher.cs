@@ -44,7 +44,7 @@ public class RabbitMQPublisher : IRabbitMQPublisher, IDisposable
 
         await _channel.ExchangeDeclareAsync(_settings.ExchangeName, ExchangeType.Topic, durable: true);
         await _channel.QueueDeclareAsync(_settings.QueueName, durable: true, exclusive: false, autoDelete: false);
-        await _channel.QueueBindAsync(_settings.QueueName, _settings.ExchangeName, "communication.*");
+        await _channel.QueueBindAsync(_settings.QueueName, _settings.ExchangeName, "communication.#");
 
         var connectionMessage = "🔗 RabbitMQ Publisher connection established successfully!".Pastel(Color.LimeGreen);
         _logger.LogInformation(connectionMessage);

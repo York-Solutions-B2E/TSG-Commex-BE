@@ -12,8 +12,10 @@ public class EventProcessingService : IEventProcessingService
     private readonly ILogger<EventProcessingService> _logger;
 
     public EventProcessingService(
+        ICommunicationRepository communicationRepository,
         ILogger<EventProcessingService> logger)
     {
+        _communicationRepository = communicationRepository;
         _logger = logger;
     }
 

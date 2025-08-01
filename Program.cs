@@ -20,9 +20,22 @@ if (builder.Environment.IsDevelopment())
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add other services
+builder.Services.AddControllers();
+
+// Add API services
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Register Repositories
+builder.Services.AddScoped<ICommunicationRepository, CommunicationRepository>();
+builder.Services.AddScoped<ICommunicationTypeRepository, CommunicationTypeRepository>();
+builder.Services.AddScoped<ICommunicationTypeStatusRepository, CommunicationTypeStatusRepository>();
+builder.Services.AddScoped<IGlobalStatusRepository, GlobalStatusRepository>();
+
+// Register Services
+builder.Services.AddScoped<ICommunicationService, CommunicationService>();
+builder.Services.AddScoped<IEventProcessingService, EventProcessingService>();
+builder.Services.AddScoped<IWorkflowService, WorkflowService>();
 
 // RabbitMQ configuration
 builder.Services.Configure<RabbitMQSettings>(builder.Configuration.GetSection("RabbitMQ"));
@@ -57,6 +70,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Your API endpoints here...
+// Map Controllers (CRITICAL - this was missing!)
+app.MapControllers();
 
 app.Run();
