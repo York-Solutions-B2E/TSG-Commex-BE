@@ -22,6 +22,19 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddControllers();
 
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowBlazorApp",
+        builder =>
+        {
+            builder.WithOrigins("https://localhost:7268", "http://localhost:7268", "https://localhost:7018", "http://localhost:7018")
+                   .AllowAnyHeader()
+                   .AllowAnyMethod()
+                   .AllowCredentials();
+        });
+});
+
 // Add API services
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -69,6 +82,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Enable CORS
+app.UseCors("AllowBlazorApp");
 
 // Map Controllers (CRITICAL - this was missing!)
 app.MapControllers();

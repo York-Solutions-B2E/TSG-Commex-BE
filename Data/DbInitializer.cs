@@ -128,7 +128,8 @@ namespace TSG_Commex_BE.Data
                     LastUpdatedUtc = DateTime.UtcNow.AddDays(-2), 
                     MemberInfo = "Member ID: 12345",
                     CreatedByUserId = adminUser.Id,
-                    LastUpdatedByUserId = johnUser.Id
+                    LastUpdatedByUserId = johnUser.Id,
+                    IsActive = true
                 },
                 new Communication 
                 { 
@@ -139,7 +140,8 @@ namespace TSG_Commex_BE.Data
                     LastUpdatedUtc = DateTime.UtcNow.AddDays(-1), 
                     MemberInfo = "Member ID: 67890",
                     CreatedByUserId = johnUser.Id,
-                    LastUpdatedByUserId = adminUser.Id
+                    LastUpdatedByUserId = adminUser.Id,
+                    IsActive = true
                 }
             };
 
