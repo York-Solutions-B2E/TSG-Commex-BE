@@ -7,6 +7,22 @@ namespace TSG_Commex_BE.Repositories.Implementations;
 
 public class CommunicationTypeStatusRepository : ICommunicationTypeStatusRepository
 {
+    private readonly ApplicationDbContext _context;
+
+    public CommunicationTypeStatusRepository(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+    public async Task<IEnumerable<CommunicationTypeStatus>> GetStatusesForCommunicationTypeAsync(string typeCode)
+    {
+        return await _context.CommunicationTypeStatuses
+            .Where(cts => cts.TypeCode == typeCode)
+            .Include(cts => cts.GlobalStatus)
+            .OrderBy(cts => cts.GlobalStatus.Phase)
+            .ThenBy(cts => cts.GlobalStatus.DisplayName)
+            .ToListAsync();
+
+    }
     // private readonly ApplicationDbContext _context;
 
     // public CommunicationTypeStatusRepository(ApplicationDbContext context)
