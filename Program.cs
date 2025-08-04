@@ -47,6 +47,7 @@ builder.Services.AddScoped<IGlobalStatusRepository, GlobalStatusRepository>();
 
 // Register Services
 builder.Services.AddScoped<ICommunicationService, CommunicationService>();
+builder.Services.AddScoped<ICommunicationTypeService, CommunicationTypeService>();
 builder.Services.AddScoped<IEventProcessingService, EventProcessingService>();
 builder.Services.AddScoped<IWorkflowService, WorkflowService>();
 
