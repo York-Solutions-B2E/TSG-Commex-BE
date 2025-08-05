@@ -16,7 +16,12 @@ namespace TSG_Commex_BE.Data
             // Check if data already exists
             if (context.GlobalStatuses.Any())
             {
-                return; // DB has been seeded
+                // Check if we need to seed CommunicationTypeStatuses
+                if (!context.CommunicationTypeStatuses.Any())
+                {
+                    SeedCommunicationTypeStatuses(context);
+                }
+                return; // Core data has been seeded
             }
 
             // Seed Users first
@@ -148,6 +153,41 @@ namespace TSG_Commex_BE.Data
             foreach (var comm in communications)
             {
                 context.Communications.Add(comm);
+            }
+            context.SaveChanges();
+        }
+
+        private static void SeedCommunicationTypeStatuses(ApplicationDbContext context)
+        {
+            // Seed CommunicationTypeStatus - Admin-configured valid statuses per type
+            var communicationTypeStatuses = new CommunicationTypeStatus[]
+            {
+                // EOB statuses (complex document workflow)
+                new CommunicationTypeStatus { TypeCode = "EOB", StatusCode = "Created", Description = "EOB document created" },
+                new CommunicationTypeStatus { TypeCode = "EOB", StatusCode = "ReadyForRelease", Description = "EOB ready for release" },
+                new CommunicationTypeStatus { TypeCode = "EOB", StatusCode = "Printed", Description = "EOB printed by vendor" },
+                new CommunicationTypeStatus { TypeCode = "EOB", StatusCode = "Shipped", Description = "EOB shipped to member" },
+                new CommunicationTypeStatus { TypeCode = "EOB", StatusCode = "Delivered", Description = "EOB delivered to member" },
+                new CommunicationTypeStatus { TypeCode = "EOB", StatusCode = "Failed", Description = "EOB processing failed" },
+                
+                // ID Card statuses (simpler workflow)
+                new CommunicationTypeStatus { TypeCode = "ID_CARD", StatusCode = "Created", Description = "Card design created" },
+                new CommunicationTypeStatus { TypeCode = "ID_CARD", StatusCode = "Printed", Description = "Card printed" },
+                new CommunicationTypeStatus { TypeCode = "ID_CARD", StatusCode = "Shipped", Description = "Card shipped" },
+                new CommunicationTypeStatus { TypeCode = "ID_CARD", StatusCode = "Delivered", Description = "Card delivered" },
+                new CommunicationTypeStatus { TypeCode = "ID_CARD", StatusCode = "Failed", Description = "Card processing failed" },
+                
+                // EOP statuses (document workflow)
+                new CommunicationTypeStatus { TypeCode = "EOP", StatusCode = "Created", Description = "EOP document created" },
+                new CommunicationTypeStatus { TypeCode = "EOP", StatusCode = "ReadyForRelease", Description = "EOP ready for release" },
+                new CommunicationTypeStatus { TypeCode = "EOP", StatusCode = "Printed", Description = "EOP printed" },
+                new CommunicationTypeStatus { TypeCode = "EOP", StatusCode = "Delivered", Description = "EOP delivered" },
+                new CommunicationTypeStatus { TypeCode = "EOP", StatusCode = "Failed", Description = "EOP processing failed" }
+            };
+
+            foreach (var typeStatus in communicationTypeStatuses)
+            {
+                context.CommunicationTypeStatuses.Add(typeStatus);
             }
             context.SaveChanges();
         }

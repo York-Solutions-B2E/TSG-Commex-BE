@@ -74,8 +74,7 @@ public class CommunicationService : ICommunicationService
             CurrentStatus = "ReadyForRelease", // Default initial status
             IsActive = true,
             CreatedUtc = DateTime.UtcNow,
-            LastUpdatedUtc = DateTime.UtcNow,
-            CreatedByUserId = int.TryParse(request.CreatedByUserId, out var userId) ? userId : null
+            LastUpdatedUtc = DateTime.UtcNow
         };
 
         // Call repository

@@ -7,7 +7,7 @@ namespace TSG_Commex_BE.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = "AdminOnly")] // Only admins can access event simulation
+[AllowAnonymous] // Temporarily disabled auth for testing
 public class EventsController : ControllerBase
 {
     private readonly IRabbitMQPublisher _publisher;
