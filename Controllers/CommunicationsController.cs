@@ -88,4 +88,54 @@ public class CommunicationsController : ControllerBase
             return StatusCode(500, new { message = "Error creating communication", error = ex.Message });
         }
     }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateCommunication(int id, [FromBody] UpdateCommunicationRequest request)
+    {
+        try
+        {
+            _logger.LogInformation("📝 Updating communication with ID: {Id}", id);
+
+            var result = await _communicationService.UpdateCommunicationAsync(id, request);
+
+            if (!result)
+            {
+                _logger.LogWarning("⚠️ Communication with ID {Id} not found", id);
+                return NotFound(new { message = $"Communication with ID {id} not found" });
+            }
+
+            _logger.LogInformation("✅ Successfully updated communication {Id}", id);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Error updating communication with ID: {Id}", id);
+            return StatusCode(500, new { message = "Error updating communication", error = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteCommunication(int id)
+    {
+        try
+        {
+            _logger.LogInformation("🗑️ Deleting communication with ID: {Id}", id);
+
+            var result = await _communicationService.DeleteCommunicationAsync(id);
+
+            if (!result)
+            {
+                _logger.LogWarning("⚠️ Communication with ID {Id} not found", id);
+                return NotFound(new { message = $"Communication with ID {id} not found" });
+            }
+
+            _logger.LogInformation("✅ Successfully deleted communication {Id}", id);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Error deleting communication with ID: {Id}", id);
+            return StatusCode(500, new { message = "Error deleting communication", error = ex.Message });
+        }
+    }
 }

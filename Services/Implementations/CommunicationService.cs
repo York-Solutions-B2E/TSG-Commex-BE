@@ -189,7 +189,7 @@ public class CommunicationService : ICommunicationService
             RecipientInfo = communication.MemberInfo ?? "Unknown",
             CreatedUtc = communication.CreatedUtc,
             LastUpdatedUtc = communication.LastUpdatedUtc,
-            CreatedByUserName = communication.CreatedByUser?.FullName ?? "System"
+            CreatedByUserName = "System" // No user tracking per project spec
         };
     }
 
