@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TSG_Commex_BE.Data;
 using TSG_Commex_BE.Models.Domain;
 using TSG_Commex_BE.Repositories.Interfaces;
+using Pastel;
 
 namespace TSG_Commex_BE.Repositories.Implementations;
 
@@ -30,7 +31,7 @@ public class CommunicationRepository : ICommunicationRepository
         // Set creation timestamp
         communication.CreatedUtc = DateTime.UtcNow;
         communication.LastUpdatedUtc = DateTime.UtcNow;
-        
+
         _context.Communications.Add(communication);
         await _context.SaveChangesAsync();
         return communication;
@@ -53,7 +54,7 @@ public class CommunicationRepository : ICommunicationRepository
         {
             // Update the timestamp
             communication.LastUpdatedUtc = DateTime.UtcNow;
-            
+
             _context.Communications.Update(communication);
             await _context.SaveChangesAsync();
             return true;
@@ -70,7 +71,7 @@ public class CommunicationRepository : ICommunicationRepository
         {
             var communication = await _context.Communications
                 .FirstOrDefaultAsync(c => c.Id == id);
-            
+
             if (communication == null)
             {
                 return false;
@@ -79,7 +80,7 @@ public class CommunicationRepository : ICommunicationRepository
             // Soft delete: Set IsActive to false
             communication.IsActive = false;
             communication.LastUpdatedUtc = DateTime.UtcNow;
-            
+
             await _context.SaveChangesAsync();
             return true;
         }
@@ -89,24 +90,62 @@ public class CommunicationRepository : ICommunicationRepository
         }
     }
 
-    public async Task<bool> UpdateStatusAsync(int commId, string newStatus)
+    public async Task<bool> UpdateStatusAsync(int commId, string newStatus, string? notes = null, string? EventSource = null, int? userId = null)
     {
         try
         {
+            Console.WriteLine($"{"[REPO-START]".Pastel("#FF00FF")} {"UpdateStatusAsync called for Communication".Pastel("#FFFFFF")} {commId.ToString().Pastel("#00FFFF")} {"→".Pastel("#FFFF00")} {newStatus.Pastel("#00FF00")}");
+            
             var communication = await _context.Communications.FindAsync(commId);
             if (communication == null)
             {
+                Console.WriteLine($"{"[REPO-ERROR]".Pastel("#FF0000")} {"Communication not found:".Pastel("#FF6666")} {commId}");
                 return false;
             }
 
+            Console.WriteLine($"{"[REPO-UPDATE]".Pastel("#00FFFF")} {"Updating communication status from".Pastel("#FFFFFF")} {communication.CurrentStatus.Pastel("#FFA500")} {"to".Pastel("#FFFFFF")} {newStatus.Pastel("#00FF00")}");
             communication.CurrentStatus = newStatus;
             communication.LastUpdatedUtc = DateTime.UtcNow;
+
+            var historyEntry = new CommunicationStatusHistory
+            {
+                CommunicationId = commId,
+                StatusCode = newStatus,
+                OccurredUtc = DateTime.UtcNow,
+                Notes = notes ?? "Status changed via event",
+                EventSource = EventSource ?? "RabbitMQ",
+                UpdatedByUserId = userId
+            };
             
-            await _context.SaveChangesAsync();
+            Console.WriteLine($"{"[REPO-HISTORY]".Pastel("#FFFF00")} {"Creating history entry:".Pastel("#FFFFFF")}");
+            Console.WriteLine($"  {"• CommunicationId:".Pastel("#00FFFF")} {historyEntry.CommunicationId}");
+            Console.WriteLine($"  {"• StatusCode:".Pastel("#00FFFF")} {historyEntry.StatusCode.Pastel("#00FF00")}");
+            Console.WriteLine($"  {"• Notes:".Pastel("#00FFFF")} {historyEntry.Notes.Pastel("#CCCCCC")}");
+            Console.WriteLine($"  {"• EventSource:".Pastel("#00FFFF")} {historyEntry.EventSource.Pastel("#FFA500")}");
+            Console.WriteLine($"  {"• UserId:".Pastel("#00FFFF")} {(historyEntry.UpdatedByUserId?.ToString() ?? "null").Pastel("#CCCCCC")}");
+            
+            _context.CommunicationStatusHistories.Add(historyEntry);
+            Console.WriteLine($"{"[REPO-HISTORY]".Pastel("#FFFF00")} {"History entry added to context".Pastel("#00FF00")}");
+
+            Console.WriteLine($"{"[REPO-SAVE]".Pastel("#00FFFF")} {"Calling SaveChangesAsync...".Pastel("#FFFFFF")}");
+            var changes = await _context.SaveChangesAsync();
+            Console.WriteLine($"{"[REPO-SUCCESS]".Pastel("#00FF00")} {"SaveChangesAsync completed! Changes saved:".Pastel("#FFFFFF")} {changes.ToString().Pastel("#00FF00")}");
+            
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"{"[REPO-EXCEPTION]".Pastel("#FF0000")} {"ERROR in UpdateStatusAsync:".Pastel("#FF0000")} {ex.Message.Pastel("#FF6666")}");
+            Console.WriteLine($"{"[REPO-EXCEPTION]".Pastel("#FF0000")} {"Exception Type:".Pastel("#FF0000")} {ex.GetType().Name.Pastel("#FF6666")}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"{"[REPO-INNER-EX]".Pastel("#FF0000")} {"Inner Exception:".Pastel("#FF0000")} {ex.InnerException.Message.Pastel("#FF6666")}");
+                if (ex.InnerException.InnerException != null)
+                {
+                    Console.WriteLine($"{"[REPO-INNER2-EX]".Pastel("#FF0000")} {"Inner Inner Exception:".Pastel("#FF0000")} {ex.InnerException.InnerException.Message.Pastel("#FF6666")}");
+                }
+            }
+            Console.WriteLine($"{"[REPO-STACK]".Pastel("#FF0000")} {"Stack Trace:".Pastel("#FF0000")}\n{ex.StackTrace?.Pastel("#FF9999")}");
             return false;
         }
     }
@@ -148,7 +187,7 @@ public class CommunicationRepository : ICommunicationRepository
 
             communication.IsActive = true;
             communication.LastUpdatedUtc = DateTime.UtcNow;
-            
+
             await _context.SaveChangesAsync();
             return true;
         }
@@ -175,7 +214,7 @@ public class CommunicationRepository : ICommunicationRepository
         {
             var communication = await _context.Communications
                 .FirstOrDefaultAsync(c => c.Id == id);
-            
+
             if (communication == null)
             {
                 return false;

@@ -11,7 +11,7 @@ public interface ICommunicationRepository
     Task<bool> UpdateAsync(Communication communication);
 
     Task<bool> DeleteAsync(int id);
-    Task<bool> UpdateStatusAsync(int commId, string newStatus);
+    Task<bool> UpdateStatusAsync(int commId, string newStatus, string? notes = null, string? EventSource = null, int? userId = null);
     Task<List<Communication>> GetByStatusAsync(string status);
 
     Task<List<Communication>> GetByTypeCode(string typeCode);

@@ -36,8 +36,13 @@ public class EventProcessingService : IEventProcessingService
                 return;
             }
 
-            // Use the existing UpdateStatusAsync method - this actually exists!
-            var success = await _communicationRepository.UpdateStatusAsync(communicationId, eventData.NewStatus);
+            var success = await _communicationRepository.UpdateStatusAsync(
+                communicationId,
+                eventData.NewStatus,
+                eventData.Notes,      // Pass the notes from the event
+                eventData.Source,     // Pass the source (e.g., "EventSimulator")
+                null                  // No user ID for system events
+);
 
             if (success)
             {
