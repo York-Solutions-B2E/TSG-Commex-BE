@@ -4,6 +4,7 @@ namespace TSG_Commex_BE.Models.Domain;
 
 public class GlobalStatus
 {
+    public int Id { get; set; }
     public required string StatusCode { get; set; }
     public required string DisplayName { get; set; }
     public required string Description { get; set; }

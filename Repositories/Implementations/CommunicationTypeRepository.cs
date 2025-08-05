@@ -14,5 +14,17 @@ public class CommunicationTypeRepository : ICommunicationTypeRepository
         _context = context;
     }
 
+    public async Task<IEnumerable<CommunicationType>> GetAllAsync()
+    {
+        return await _context.CommunicationTypes
+            .Where(t => t.IsActive)
+            .ToListAsync();
+    }
+    public async Task<CommunicationType?> GetByIdAsync(int id)
+    {
+        return await _context.CommunicationTypes
+            .FirstOrDefaultAsync(t => t.Id == id && t.IsActive);
+    }
+
     // TODO: Implement all interface methods
 }

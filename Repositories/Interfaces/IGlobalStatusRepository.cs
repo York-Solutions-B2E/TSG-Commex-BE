@@ -5,5 +5,11 @@ namespace TSG_Commex_BE.Repositories.Interfaces;
 
 public interface IGlobalStatusRepository
 {
-    // TODO: Add your method signatures here
+    Task<IEnumerable<GlobalStatus>> GetAllAsync();
+    Task<GlobalStatus?> GetByIdAsync(int id);
+    Task<GlobalStatus?> GetByStatusCodeAsync(string statusCode);
+    Task<GlobalStatus> CreateAsync(GlobalStatus status);
+    Task<GlobalStatus> UpdateAsync(GlobalStatus status);
+    Task<bool> DeleteAsync(int id);
+    Task<IEnumerable<GlobalStatus>> GetByPhaseAsync(string phase);
 }
