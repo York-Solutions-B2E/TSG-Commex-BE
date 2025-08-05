@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using TSG_Commex_BE.Services.Interfaces;
 using TSG_Commex_BE.DTOs.Response;
 using TSG_Commex_BE.DTOs.Request;
@@ -8,6 +9,7 @@ namespace TSG_Commex_BE.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize] // Require authentication for all endpoints
 public class CommunicationsController : ControllerBase
 {
     private readonly ICommunicationService _communicationService;

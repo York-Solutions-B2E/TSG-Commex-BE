@@ -8,7 +8,7 @@ namespace TSG_Commex_BE.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[Authorize] // Require authentication for all endpoints
 public class CommunicationTypesController : ControllerBase
 {
     private readonly ICommunicationTypeService _communicationTypeService;

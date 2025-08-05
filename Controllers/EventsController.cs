@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using TSG_Commex_BE.DTOs.Events;
 using TSG_Commex_BE.Services.Interfaces;
 
@@ -6,6 +7,7 @@ namespace TSG_Commex_BE.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Policy = "AdminOnly")] // Only admins can access event simulation
 public class EventsController : ControllerBase
 {
     private readonly IRabbitMQPublisher _publisher;

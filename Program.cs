@@ -6,6 +6,9 @@ using TSG_Commex_BE.Services.Interfaces;
 using TSG_Commex_BE.Services.Implementations;
 using TSG_Commex_BE.Configuration;  // ← For RabbitMQSettings
 using TSG_Commex_BE.Services;       // ← For RabbitMQBackgroundService
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +24,106 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddControllers();
+
+// Configure JWT Bearer Authentication manually (more reliable than AddOktaWebApi)
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+.AddJwtBearer(options =>
+{
+    options.Authority = $"{builder.Configuration["Okta:OktaDomain"]}/oauth2/default";
+    options.Audience = "api://default";
+    options.RequireHttpsMetadata = true;
+    
+    // Configure Token validation Parameters to accept groups in role based authorization
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        RoleClaimType = "role", // Tell .NET to treat "role" claims as roles for authorization
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ClockSkew = TimeSpan.FromMinutes(2)
+    };
+    
+    // In development, accept any SSL certificate AND log more details
+    if (builder.Environment.IsDevelopment())
+    {
+        options.BackchannelHttpHandler = new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+        };
+        
+        // Add more detailed logging
+        options.IncludeErrorDetails = true;
+        
+        // Force refresh of discovery document
+        options.RefreshOnIssuerKeyNotFound = true;
+    }
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            
+            // Extract user info from JWT claims
+            var email = context.Principal?.FindFirst("email")?.Value;
+            var name = context.Principal?.FindFirst("name")?.Value ?? 
+                      context.Principal?.FindFirst("preferred_username")?.Value;
+            
+            logger.LogInformation("JWT validated for user: {Email}", email);
+
+            // Log all claims for debugging
+            logger.LogInformation("All JWT claims:");
+            foreach (var claim in context.Principal?.Claims ?? Enumerable.Empty<Claim>())
+            {
+                logger.LogInformation("  {Type}: {Value}", claim.Type, claim.Value);
+            }
+            
+            // The role assignment is already handled by the frontend
+            // The JWT already contains the role claim, so we don't need to add it again
+            var existingRole = context.Principal?.FindFirst("role")?.Value;
+            logger.LogInformation("Existing role claim: {Role}", existingRole ?? "None");
+            
+            var additionalClaims = new List<Claim>();
+
+            // If we have additional claims, create a new ClaimsIdentity
+            if (additionalClaims.Any())
+            {
+                var identity = context.Principal?.Identity as ClaimsIdentity;
+                identity?.AddClaims(additionalClaims);
+            }
+
+            return Task.CompletedTask;
+        },
+        OnAuthenticationFailed = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogError(context.Exception, "JWT authentication failed: {Error}", context.Exception.Message);
+            
+            // Log additional details in development
+            if (builder.Environment.IsDevelopment())
+            {
+                logger.LogError("Token: {Token}", context.Request.Headers.Authorization.FirstOrDefault());
+            }
+            
+            return Task.CompletedTask;
+        }
+    };
+});
+
+// Configure Authorization policies
+builder.Services.AddAuthorization(options =>
+{
+    // Default policy requires authentication
+    options.FallbackPolicy = options.DefaultPolicy;
+
+        // Admin-only policy (matching frontend role assignment)
+    options.AddPolicy("AdminOnly", policy =>
+        policy.RequireRole("Admin"));
+    
+    // User or Admin policy  
+    options.AddPolicy("UserOrAdmin", policy =>
+        policy.RequireRole("User", "Admin"));
+});
 
 // Add CORS
 builder.Services.AddCors(options =>
@@ -63,6 +166,44 @@ builder.Services.AddHostedService<RabbitMQBackgroundService>();
 
 var app = builder.Build();
 
+// Log Okta configuration on startup
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+logger.LogInformation("Okta Configuration:");
+logger.LogInformation("  OktaDomain: {OktaDomain}", builder.Configuration["Okta:OktaDomain"]);
+logger.LogInformation("  Authority: {Authority}", $"{builder.Configuration["Okta:OktaDomain"]}/oauth2/default");
+logger.LogInformation("  MetadataAddress: {MetadataAddress}", $"{builder.Configuration["Okta:OktaDomain"]}/oauth2/default/.well-known/openid-configuration");
+
+// Test Okta connectivity on startup
+_ = Task.Run(async () =>
+{
+    try
+    {
+        var httpClient = new HttpClient(new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+        });
+        
+        var metadataUrl = $"{builder.Configuration["Okta:OktaDomain"]}/oauth2/default/.well-known/openid-configuration";
+        logger.LogInformation("🔍 Testing connectivity to Okta metadata endpoint: {Url}", metadataUrl);
+        
+        var response = await httpClient.GetAsync(metadataUrl);
+        if (response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            logger.LogInformation("✅ Successfully connected to Okta metadata endpoint");
+            logger.LogDebug("Metadata response length: {Length} chars", content.Length);
+        }
+        else
+        {
+            logger.LogError("❌ Failed to connect to Okta metadata endpoint. Status: {Status}", response.StatusCode);
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "❌ Error connecting to Okta metadata endpoint: {Error}", ex.Message);
+    }
+});
+
 // Seed database
 using (var scope = app.Services.CreateScope())
 {
@@ -86,6 +227,10 @@ app.UseHttpsRedirection();
 
 // Enable CORS
 app.UseCors("AllowBlazorApp");
+
+// Add authentication and authorization middleware
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Map Controllers (CRITICAL - this was missing!)
 app.MapControllers();
