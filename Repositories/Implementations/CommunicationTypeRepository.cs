@@ -26,5 +26,35 @@ public class CommunicationTypeRepository : ICommunicationTypeRepository
             .FirstOrDefaultAsync(t => t.Id == id && t.IsActive);
     }
 
-    // TODO: Implement all interface methods
+    public async Task<CommunicationType?> GetByTypeCodeAsync(string typeCode)
+    {
+        return await _context.CommunicationTypes
+            .FirstOrDefaultAsync(t => t.TypeCode == typeCode && t.IsActive);
+    }
+
+    public async Task<CommunicationType> CreateAsync(CommunicationType type)
+    {
+        _context.CommunicationTypes.Add(type);
+        await _context.SaveChangesAsync();
+        return type;
+    }
+
+    public async Task<CommunicationType> UpdateAsync(CommunicationType type)
+    {
+        _context.CommunicationTypes.Update(type);
+        await _context.SaveChangesAsync();
+        return type;
+    }
+
+    public async Task<bool> DeleteAsync(int id)
+    {
+        var type = await GetByIdAsync(id);
+        if (type == null)
+            return false;
+
+        type.IsActive = false;
+        _context.CommunicationTypes.Update(type);
+        await _context.SaveChangesAsync();
+        return true;
+    }
 }
