@@ -6,7 +6,7 @@ public class CommunicationStatusHistory
 {
     public int Id { get; set; }
     public int CommunicationId { get; set; }
-    public required string StatusCode { get; set; }
+    public int GlobalStatusId { get; set; } // Foreign key to GlobalStatus
     public DateTime OccurredUtc { get; set; }
     public string? Notes { get; set; }
     public string? EventSource { get; set; } // RabbitMQ, Manual, Simulator
@@ -14,5 +14,6 @@ public class CommunicationStatusHistory
 
     // Navigation properties
     public Communication Communication { get; set; } = null!;
+    public GlobalStatus GlobalStatus { get; set; } = null!;
     public User? UpdatedByUser { get; set; }
 }

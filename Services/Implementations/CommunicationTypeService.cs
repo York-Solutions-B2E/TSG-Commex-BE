@@ -175,7 +175,7 @@ public class CommunicationTypeService : ICommunicationTypeService
         
         return statuses.Select(cts => new CommunicationTypeStatusResponse
         {
-            StatusCode = cts.StatusCode,
+            StatusCode = cts.GlobalStatus.StatusCode,
             DisplayName = cts.GlobalStatus.DisplayName,
             Description = cts.GlobalStatus.Description,
             Phase = cts.GlobalStatus.Phase.ToString(),

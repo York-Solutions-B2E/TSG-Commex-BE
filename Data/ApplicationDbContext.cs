@@ -12,6 +12,7 @@ public class ApplicationDbContext : DbContext
 
     // DbSets - one for each table
     public DbSet<User> Users { get; set; }
+    public DbSet<Member> Members { get; set; }
     public DbSet<Communication> Communications { get; set; }
     public DbSet<CommunicationType> CommunicationTypes { get; set; }
     public DbSet<CommunicationStatusHistory> CommunicationStatusHistories { get; set; }
@@ -28,13 +29,33 @@ public class ApplicationDbContext : DbContext
             .HasIndex(u => u.Email)
             .IsUnique();
 
+        // Member configuration
+        modelBuilder.Entity<Member>()
+            .HasKey(m => m.Id);
+        
+        modelBuilder.Entity<Member>()
+            .HasIndex(m => m.MemberId)
+            .IsUnique();
+        
+        modelBuilder.Entity<Member>()
+            .HasIndex(m => m.Email)
+            .IsUnique();
+
         // CommunicationType configuration
         modelBuilder.Entity<CommunicationType>()
-            .HasKey(ct => ct.TypeCode);
+            .HasKey(ct => ct.Id);
+        
+        modelBuilder.Entity<CommunicationType>()
+            .HasIndex(ct => ct.TypeCode)
+            .IsUnique();
 
         // GlobalStatus configuration
         modelBuilder.Entity<GlobalStatus>()
-            .HasKey(gs => gs.StatusCode);
+            .HasKey(gs => gs.Id);
+        
+        modelBuilder.Entity<GlobalStatus>()
+            .HasIndex(gs => gs.StatusCode)
+            .IsUnique();
 
         modelBuilder.Entity<GlobalStatus>()
             .Property(gs => gs.Phase)
@@ -42,18 +63,24 @@ public class ApplicationDbContext : DbContext
 
         // CommunicationTypeStatus configuration
         modelBuilder.Entity<CommunicationTypeStatus>()
-            .HasKey(cts => new { cts.TypeCode, cts.StatusCode });
+            .HasKey(cts => cts.Id);
 
         // Communication relationships
         modelBuilder.Entity<Communication>()
-            .HasOne(c => c.Type)
+            .HasOne(c => c.CommunicationType)
             .WithMany(ct => ct.Communications)
-            .HasForeignKey(c => c.TypeCode);
+            .HasForeignKey(c => c.CommunicationTypeId);
 
         modelBuilder.Entity<Communication>()
-            .HasOne<GlobalStatus>()
+            .HasOne(c => c.CurrentStatus)
             .WithMany(gs => gs.Communications)
-            .HasForeignKey(c => c.CurrentStatus)
+            .HasForeignKey(c => c.CurrentStatusId)
+            .OnDelete(DeleteBehavior.Restrict);
+        
+        modelBuilder.Entity<Communication>()
+            .HasOne(c => c.Member)
+            .WithMany(m => m.Communications)
+            .HasForeignKey(c => c.MemberId)
             .OnDelete(DeleteBehavior.Restrict);
 
         // Communication User relationships
@@ -73,12 +100,12 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<CommunicationTypeStatus>()
             .HasOne(cts => cts.CommunicationType)
             .WithMany()
-            .HasForeignKey(cts => cts.TypeCode);
+            .HasForeignKey(cts => cts.CommunicationTypeId);
 
         modelBuilder.Entity<CommunicationTypeStatus>()
             .HasOne(cts => cts.GlobalStatus)
             .WithMany()
-            .HasForeignKey(cts => cts.StatusCode);
+            .HasForeignKey(cts => cts.GlobalStatusId);
 
         // StatusHistory relationships
         modelBuilder.Entity<CommunicationStatusHistory>()
@@ -88,9 +115,9 @@ public class ApplicationDbContext : DbContext
             .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<CommunicationStatusHistory>()
-            .HasOne<GlobalStatus>()
+            .HasOne(csh => csh.GlobalStatus)
             .WithMany(gs => gs.StatusHistories)
-            .HasForeignKey(csh => csh.StatusCode)
+            .HasForeignKey(csh => csh.GlobalStatusId)
             .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<CommunicationStatusHistory>()

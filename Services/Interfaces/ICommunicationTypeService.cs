@@ -1,3 +1,4 @@
+using TSG_Commex_Shared.DTOs;
 using TSG_Commex_Shared.DTOs.Request;
 using TSG_Commex_Shared.DTOs.Response;
 
@@ -16,4 +17,5 @@ public interface ICommunicationTypeService
     // Status mapping operations
     Task<IEnumerable<int>> GetStatusIdsForTypeAsync(string typeCode);
     Task<bool> UpdateStatusMappingsForTypeAsync(string typeCode, List<int> statusIds);
+    Task<IEnumerable<CommunicationTypeStatusResponse>> GetStatusesForTypeAsync(string typeCode);
 }

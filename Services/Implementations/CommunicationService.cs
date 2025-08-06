@@ -11,15 +11,21 @@ public class CommunicationService : ICommunicationService
 {
     private readonly ICommunicationRepository _communicationRepository;
     private readonly ICommunicationTypeStatusRepository _communicationTypeStatusRepository;
+    private readonly ICommunicationTypeRepository _communicationTypeRepository;
+    private readonly IGlobalStatusRepository _globalStatusRepository;
     private readonly ILogger<CommunicationService> _logger;
 
     public CommunicationService(
         ICommunicationRepository communicationRepository,
         ICommunicationTypeStatusRepository communicationTypeStatusRepository,
+        ICommunicationTypeRepository communicationTypeRepository,
+        IGlobalStatusRepository globalStatusRepository,
         ILogger<CommunicationService> logger)
     {
         _communicationRepository = communicationRepository;
         _communicationTypeStatusRepository = communicationTypeStatusRepository;
+        _communicationTypeRepository = communicationTypeRepository;
+        _globalStatusRepository = globalStatusRepository;
         _logger = logger;
     }
 
@@ -64,14 +70,23 @@ public class CommunicationService : ICommunicationService
         if (string.IsNullOrWhiteSpace(request.TypeCode))
             throw new ArgumentException("TypeCode is required", nameof(request));
 
+        // Lookup IDs from codes using repositories
+        var type = await _communicationTypeRepository.GetByTypeCodeAsync(request.TypeCode);
+        if (type == null)
+            throw new ArgumentException($"Invalid TypeCode: {request.TypeCode}");
+
+        var status = await _globalStatusRepository.GetByStatusCodeAsync("ReadyForRelease");
+        if (status == null)
+            throw new ArgumentException("Default status 'ReadyForRelease' not found");
+
         // Map DTO → Domain Model
         var communication = new Communication
         {
             Title = request.Title,
-            TypeCode = request.TypeCode,
+            CommunicationTypeId = type.Id,
             MemberInfo = request.MemberInfo,
             SourceFileUrl = request.SourceFileUrl,
-            CurrentStatus = "ReadyForRelease", // Default initial status
+            CurrentStatusId = status.Id, // Default initial status
             IsActive = true,
             CreatedUtc = DateTime.UtcNow,
             LastUpdatedUtc = DateTime.UtcNow
@@ -79,9 +94,12 @@ public class CommunicationService : ICommunicationService
 
         // Call repository
         var createdCommunication = await _communicationRepository.CreateAsync(communication);
+        
+        // Reload with navigation properties for response mapping
+        createdCommunication = await _communicationRepository.GetByIdAsync(createdCommunication.Id);
 
         // Map Domain Model → Response DTO
-        return MapToResponse(createdCommunication);
+        return MapToResponse(createdCommunication!);
     }
     public async Task<bool> UpdateCommunicationAsync(int id, UpdateCommunicationRequest request)
     {

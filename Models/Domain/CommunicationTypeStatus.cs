@@ -2,8 +2,10 @@ namespace TSG_Commex_BE.Models.Domain;
 
 public class CommunicationTypeStatus
 {
-    public required string TypeCode { get; set; }
-    public required string StatusCode { get; set; }
+    public int Id { get; set; }
+    public int CommunicationTypeId { get; set; }
+    public int GlobalStatusId { get; set; }
+    public bool IsActive { get; set; } = true;
     public string? Description { get; set; }
 
     // Navigation properties

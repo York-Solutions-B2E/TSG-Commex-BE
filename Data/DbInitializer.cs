@@ -85,30 +85,42 @@ namespace TSG_Commex_BE.Data
             }
             context.SaveChanges();
 
+            // Get the IDs for foreign keys
+            var eobType = context.CommunicationTypes.First(ct => ct.TypeCode == "EOB");
+            var eopType = context.CommunicationTypes.First(ct => ct.TypeCode == "EOP");
+            var idCardType = context.CommunicationTypes.First(ct => ct.TypeCode == "ID_CARD");
+
+            var createdStatus = context.GlobalStatuses.First(gs => gs.StatusCode == "Created");
+            var readyForReleaseStatus = context.GlobalStatuses.First(gs => gs.StatusCode == "ReadyForRelease");
+            var printedStatus = context.GlobalStatuses.First(gs => gs.StatusCode == "Printed");
+            var shippedStatus = context.GlobalStatuses.First(gs => gs.StatusCode == "Shipped");
+            var deliveredStatus = context.GlobalStatuses.First(gs => gs.StatusCode == "Delivered");
+            var failedStatus = context.GlobalStatuses.First(gs => gs.StatusCode == "Failed");
+
             // Seed CommunicationTypeStatus - Admin-configured valid statuses per type
             var communicationTypeStatuses = new CommunicationTypeStatus[]
             {
                 // EOB statuses (complex document workflow)
-                new CommunicationTypeStatus { TypeCode = "EOB", StatusCode = "Created", Description = "EOB document created" },
-                new CommunicationTypeStatus { TypeCode = "EOB", StatusCode = "ReadyForRelease", Description = "EOB ready for release" },
-                new CommunicationTypeStatus { TypeCode = "EOB", StatusCode = "Printed", Description = "EOB printed by vendor" },
-                new CommunicationTypeStatus { TypeCode = "EOB", StatusCode = "Shipped", Description = "EOB shipped to member" },
-                new CommunicationTypeStatus { TypeCode = "EOB", StatusCode = "Delivered", Description = "EOB delivered to member" },
-                new CommunicationTypeStatus { TypeCode = "EOB", StatusCode = "Failed", Description = "EOB processing failed" },
+                new CommunicationTypeStatus { CommunicationTypeId = eobType.Id, GlobalStatusId = createdStatus.Id, IsActive = true, Description = "EOB document created" },
+                new CommunicationTypeStatus { CommunicationTypeId = eobType.Id, GlobalStatusId = readyForReleaseStatus.Id, IsActive = true, Description = "EOB ready for release" },
+                new CommunicationTypeStatus { CommunicationTypeId = eobType.Id, GlobalStatusId = printedStatus.Id, IsActive = true, Description = "EOB printed by vendor" },
+                new CommunicationTypeStatus { CommunicationTypeId = eobType.Id, GlobalStatusId = shippedStatus.Id, IsActive = true, Description = "EOB shipped to member" },
+                new CommunicationTypeStatus { CommunicationTypeId = eobType.Id, GlobalStatusId = deliveredStatus.Id, IsActive = true, Description = "EOB delivered to member" },
+                new CommunicationTypeStatus { CommunicationTypeId = eobType.Id, GlobalStatusId = failedStatus.Id, IsActive = true, Description = "EOB processing failed" },
                 
                 // ID Card statuses (simpler workflow)
-                new CommunicationTypeStatus { TypeCode = "ID_CARD", StatusCode = "Created", Description = "Card design created" },
-                new CommunicationTypeStatus { TypeCode = "ID_CARD", StatusCode = "Printed", Description = "Card printed" },
-                new CommunicationTypeStatus { TypeCode = "ID_CARD", StatusCode = "Shipped", Description = "Card shipped" },
-                new CommunicationTypeStatus { TypeCode = "ID_CARD", StatusCode = "Delivered", Description = "Card delivered" },
-                new CommunicationTypeStatus { TypeCode = "ID_CARD", StatusCode = "Failed", Description = "Card processing failed" },
+                new CommunicationTypeStatus { CommunicationTypeId = idCardType.Id, GlobalStatusId = createdStatus.Id, IsActive = true, Description = "Card design created" },
+                new CommunicationTypeStatus { CommunicationTypeId = idCardType.Id, GlobalStatusId = printedStatus.Id, IsActive = true, Description = "Card printed" },
+                new CommunicationTypeStatus { CommunicationTypeId = idCardType.Id, GlobalStatusId = shippedStatus.Id, IsActive = true, Description = "Card shipped" },
+                new CommunicationTypeStatus { CommunicationTypeId = idCardType.Id, GlobalStatusId = deliveredStatus.Id, IsActive = true, Description = "Card delivered" },
+                new CommunicationTypeStatus { CommunicationTypeId = idCardType.Id, GlobalStatusId = failedStatus.Id, IsActive = true, Description = "Card processing failed" },
                 
                 // EOP statuses (document workflow)
-                new CommunicationTypeStatus { TypeCode = "EOP", StatusCode = "Created", Description = "EOP document created" },
-                new CommunicationTypeStatus { TypeCode = "EOP", StatusCode = "ReadyForRelease", Description = "EOP ready for release" },
-                new CommunicationTypeStatus { TypeCode = "EOP", StatusCode = "Printed", Description = "EOP printed" },
-                new CommunicationTypeStatus { TypeCode = "EOP", StatusCode = "Delivered", Description = "EOP delivered" },
-                new CommunicationTypeStatus { TypeCode = "EOP", StatusCode = "Failed", Description = "EOP processing failed" }
+                new CommunicationTypeStatus { CommunicationTypeId = eopType.Id, GlobalStatusId = createdStatus.Id, IsActive = true, Description = "EOP document created" },
+                new CommunicationTypeStatus { CommunicationTypeId = eopType.Id, GlobalStatusId = readyForReleaseStatus.Id, IsActive = true, Description = "EOP ready for release" },
+                new CommunicationTypeStatus { CommunicationTypeId = eopType.Id, GlobalStatusId = printedStatus.Id, IsActive = true, Description = "EOP printed" },
+                new CommunicationTypeStatus { CommunicationTypeId = eopType.Id, GlobalStatusId = deliveredStatus.Id, IsActive = true, Description = "EOP delivered" },
+                new CommunicationTypeStatus { CommunicationTypeId = eopType.Id, GlobalStatusId = failedStatus.Id, IsActive = true, Description = "EOP processing failed" }
             };
 
             foreach (var typeStatus in communicationTypeStatuses)
@@ -117,33 +129,106 @@ namespace TSG_Commex_BE.Data
             }
             context.SaveChanges();
 
-            // Get seeded users for foreign key references
+            // Seed Members with funky names
+            var members = new Member[]
+            {
+                new Member 
+                { 
+                    MemberId = "12345",
+                    FirstName = "Bartholomew",
+                    LastName = "McFizzlebrow",
+                    Email = "b.mcfizzle@example.com",
+                    PhoneNumber = "555-123-4567",
+                    Address = "742 Evergreen Terrace",
+                    City = "Springfield",
+                    State = "CA",
+                    ZipCode = "90210",
+                    DateOfBirth = new DateTime(1980, 5, 15),
+                    EnrollmentDate = new DateTime(2020, 1, 1),
+                    IsActive = true
+                },
+                new Member 
+                { 
+                    MemberId = "67890",
+                    FirstName = "Persephone",
+                    LastName = "Thunderwhistle",
+                    Email = "p.thunder@example.com",
+                    PhoneNumber = "555-987-6543",
+                    Address = "1337 Hacker Way",
+                    City = "Cyberville",
+                    State = "NY",
+                    ZipCode = "10001",
+                    DateOfBirth = new DateTime(1975, 8, 22),
+                    EnrollmentDate = new DateTime(2019, 6, 15),
+                    IsActive = true
+                },
+                new Member 
+                { 
+                    MemberId = "11111",
+                    FirstName = "Wolfgang",
+                    LastName = "von Snickerdoodle",
+                    Email = "w.snickerdoodle@example.com",
+                    PhoneNumber = "555-555-5555",
+                    Address = "999 Infinity Loop",
+                    City = "Quantumburg",
+                    State = "TX",
+                    ZipCode = "75001",
+                    DateOfBirth = new DateTime(1990, 12, 3),
+                    EnrollmentDate = new DateTime(2021, 3, 20),
+                    IsActive = true
+                },
+                new Member 
+                { 
+                    MemberId = "99999",
+                    FirstName = "Maximilian",
+                    LastName = "Buttercup-Jones",
+                    Email = "max.buttercup@example.com",
+                    PhoneNumber = "555-777-8888",
+                    Address = "42 Answer Street",
+                    City = "Hitchhiker",
+                    State = "FL",
+                    ZipCode = "33101",
+                    DateOfBirth = new DateTime(1985, 4, 1),
+                    EnrollmentDate = new DateTime(2022, 7, 4),
+                    IsActive = true
+                }
+            };
+
+            foreach (var member in members)
+            {
+                context.Members.Add(member);
+            }
+            context.SaveChanges();
+
+            // Get seeded users and members for foreign key references
             var adminUser = context.Users.First(u => u.Email == "admin@zelis.com");
             var johnUser = context.Users.First(u => u.Email == "john.doe@zelis.com");
+            var bartMember = context.Members.First(m => m.MemberId == "12345");
+            var persephoneMember = context.Members.First(m => m.MemberId == "67890");
 
-            // Seed Sample Communications with user tracking
+            // Seed Sample Communications with user and member tracking
             var communications = new Communication[]
             {
                 new Communication 
                 { 
-                    Title = "John Doe - EOB Q3 2024", 
-                    TypeCode = "EOB", 
-                    CurrentStatus = "Printed", 
+                    Title = "Bartholomew McFizzlebottom - EOB Q3 2024", 
+                    CommunicationTypeId = eobType.Id, 
+                    CurrentStatusId = printedStatus.Id, 
+                    MemberId = bartMember.Id,
                     CreatedUtc = DateTime.UtcNow.AddDays(-10), 
                     LastUpdatedUtc = DateTime.UtcNow.AddDays(-2), 
-                    MemberInfo = "Member ID: 12345",
                     CreatedByUserId = adminUser.Id,
                     LastUpdatedByUserId = johnUser.Id,
                     IsActive = true
                 },
                 new Communication 
                 { 
-                    Title = "Jane Smith - ID Card", 
-                    TypeCode = "ID_CARD", 
-                    CurrentStatus = "Shipped", 
+                    Title = "Persephone Thunderwhistle - ID Card", 
+                    CommunicationTypeId = idCardType.Id, 
+                    CurrentStatusId = shippedStatus.Id, 
+                    MemberId = persephoneMember.Id,
                     CreatedUtc = DateTime.UtcNow.AddDays(-5), 
                     LastUpdatedUtc = DateTime.UtcNow.AddDays(-1), 
-                    MemberInfo = "Member ID: 67890",
                     CreatedByUserId = johnUser.Id,
                     LastUpdatedByUserId = adminUser.Id,
                     IsActive = true
@@ -159,30 +244,42 @@ namespace TSG_Commex_BE.Data
 
         private static void SeedCommunicationTypeStatuses(ApplicationDbContext context)
         {
+            // Get the IDs for foreign keys
+            var eobType = context.CommunicationTypes.First(ct => ct.TypeCode == "EOB");
+            var eopType = context.CommunicationTypes.First(ct => ct.TypeCode == "EOP");
+            var idCardType = context.CommunicationTypes.First(ct => ct.TypeCode == "ID_CARD");
+
+            var createdStatus = context.GlobalStatuses.First(gs => gs.StatusCode == "Created");
+            var readyForReleaseStatus = context.GlobalStatuses.First(gs => gs.StatusCode == "ReadyForRelease");
+            var printedStatus = context.GlobalStatuses.First(gs => gs.StatusCode == "Printed");
+            var shippedStatus = context.GlobalStatuses.First(gs => gs.StatusCode == "Shipped");
+            var deliveredStatus = context.GlobalStatuses.First(gs => gs.StatusCode == "Delivered");
+            var failedStatus = context.GlobalStatuses.First(gs => gs.StatusCode == "Failed");
+
             // Seed CommunicationTypeStatus - Admin-configured valid statuses per type
             var communicationTypeStatuses = new CommunicationTypeStatus[]
             {
                 // EOB statuses (complex document workflow)
-                new CommunicationTypeStatus { TypeCode = "EOB", StatusCode = "Created", Description = "EOB document created" },
-                new CommunicationTypeStatus { TypeCode = "EOB", StatusCode = "ReadyForRelease", Description = "EOB ready for release" },
-                new CommunicationTypeStatus { TypeCode = "EOB", StatusCode = "Printed", Description = "EOB printed by vendor" },
-                new CommunicationTypeStatus { TypeCode = "EOB", StatusCode = "Shipped", Description = "EOB shipped to member" },
-                new CommunicationTypeStatus { TypeCode = "EOB", StatusCode = "Delivered", Description = "EOB delivered to member" },
-                new CommunicationTypeStatus { TypeCode = "EOB", StatusCode = "Failed", Description = "EOB processing failed" },
+                new CommunicationTypeStatus { CommunicationTypeId = eobType.Id, GlobalStatusId = createdStatus.Id, IsActive = true, Description = "EOB document created" },
+                new CommunicationTypeStatus { CommunicationTypeId = eobType.Id, GlobalStatusId = readyForReleaseStatus.Id, IsActive = true, Description = "EOB ready for release" },
+                new CommunicationTypeStatus { CommunicationTypeId = eobType.Id, GlobalStatusId = printedStatus.Id, IsActive = true, Description = "EOB printed by vendor" },
+                new CommunicationTypeStatus { CommunicationTypeId = eobType.Id, GlobalStatusId = shippedStatus.Id, IsActive = true, Description = "EOB shipped to member" },
+                new CommunicationTypeStatus { CommunicationTypeId = eobType.Id, GlobalStatusId = deliveredStatus.Id, IsActive = true, Description = "EOB delivered to member" },
+                new CommunicationTypeStatus { CommunicationTypeId = eobType.Id, GlobalStatusId = failedStatus.Id, IsActive = true, Description = "EOB processing failed" },
                 
                 // ID Card statuses (simpler workflow)
-                new CommunicationTypeStatus { TypeCode = "ID_CARD", StatusCode = "Created", Description = "Card design created" },
-                new CommunicationTypeStatus { TypeCode = "ID_CARD", StatusCode = "Printed", Description = "Card printed" },
-                new CommunicationTypeStatus { TypeCode = "ID_CARD", StatusCode = "Shipped", Description = "Card shipped" },
-                new CommunicationTypeStatus { TypeCode = "ID_CARD", StatusCode = "Delivered", Description = "Card delivered" },
-                new CommunicationTypeStatus { TypeCode = "ID_CARD", StatusCode = "Failed", Description = "Card processing failed" },
+                new CommunicationTypeStatus { CommunicationTypeId = idCardType.Id, GlobalStatusId = createdStatus.Id, IsActive = true, Description = "Card design created" },
+                new CommunicationTypeStatus { CommunicationTypeId = idCardType.Id, GlobalStatusId = printedStatus.Id, IsActive = true, Description = "Card printed" },
+                new CommunicationTypeStatus { CommunicationTypeId = idCardType.Id, GlobalStatusId = shippedStatus.Id, IsActive = true, Description = "Card shipped" },
+                new CommunicationTypeStatus { CommunicationTypeId = idCardType.Id, GlobalStatusId = deliveredStatus.Id, IsActive = true, Description = "Card delivered" },
+                new CommunicationTypeStatus { CommunicationTypeId = idCardType.Id, GlobalStatusId = failedStatus.Id, IsActive = true, Description = "Card processing failed" },
                 
                 // EOP statuses (document workflow)
-                new CommunicationTypeStatus { TypeCode = "EOP", StatusCode = "Created", Description = "EOP document created" },
-                new CommunicationTypeStatus { TypeCode = "EOP", StatusCode = "ReadyForRelease", Description = "EOP ready for release" },
-                new CommunicationTypeStatus { TypeCode = "EOP", StatusCode = "Printed", Description = "EOP printed" },
-                new CommunicationTypeStatus { TypeCode = "EOP", StatusCode = "Delivered", Description = "EOP delivered" },
-                new CommunicationTypeStatus { TypeCode = "EOP", StatusCode = "Failed", Description = "EOP processing failed" }
+                new CommunicationTypeStatus { CommunicationTypeId = eopType.Id, GlobalStatusId = createdStatus.Id, IsActive = true, Description = "EOP document created" },
+                new CommunicationTypeStatus { CommunicationTypeId = eopType.Id, GlobalStatusId = readyForReleaseStatus.Id, IsActive = true, Description = "EOP ready for release" },
+                new CommunicationTypeStatus { CommunicationTypeId = eopType.Id, GlobalStatusId = printedStatus.Id, IsActive = true, Description = "EOP printed" },
+                new CommunicationTypeStatus { CommunicationTypeId = eopType.Id, GlobalStatusId = deliveredStatus.Id, IsActive = true, Description = "EOP delivered" },
+                new CommunicationTypeStatus { CommunicationTypeId = eopType.Id, GlobalStatusId = failedStatus.Id, IsActive = true, Description = "EOP processing failed" }
             };
 
             foreach (var typeStatus in communicationTypeStatuses)

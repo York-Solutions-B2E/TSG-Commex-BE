@@ -16,7 +16,7 @@ public class CommunicationTypeStatusRepository : ICommunicationTypeStatusReposit
     public async Task<IEnumerable<CommunicationTypeStatus>> GetStatusesForCommunicationTypeAsync(string typeCode)
     {
         return await _context.CommunicationTypeStatuses
-            .Where(cts => cts.TypeCode == typeCode)
+            .Where(cts => cts.CommunicationType.TypeCode == typeCode && cts.IsActive)
             .Include(cts => cts.GlobalStatus)
             .OrderBy(cts => cts.GlobalStatus.Phase)
             .ThenBy(cts => cts.GlobalStatus.DisplayName)

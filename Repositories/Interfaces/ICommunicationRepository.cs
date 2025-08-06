@@ -11,10 +11,10 @@ public interface ICommunicationRepository
     Task<bool> UpdateAsync(Communication communication);
 
     Task<bool> DeleteAsync(int id);
-    Task<bool> UpdateStatusAsync(int commId, string newStatus, string? notes = null, string? EventSource = null, int? userId = null);
-    Task<List<Communication>> GetByStatusAsync(string status);
+    Task<bool> UpdateStatusAsync(int commId, int newStatusId, string? notes = null, string? EventSource = null, int? userId = null);
+    Task<List<Communication>> GetByStatusAsync(int statusId);
 
-    Task<List<Communication>> GetByTypeCode(string typeCode);
+    Task<List<Communication>> GetByTypeId(int typeId);
 
     // Soft Delete Methods
     Task<bool> RestoreAsync(int id);

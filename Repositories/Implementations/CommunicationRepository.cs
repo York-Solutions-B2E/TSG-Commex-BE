@@ -19,7 +19,8 @@ public class CommunicationRepository : ICommunicationRepository
     {
         return await _context.Communications
             .Where(c => c.IsActive == true) // Manual soft delete filter
-            .Include(c => c.Type)
+            .Include(c => c.CommunicationType)
+            .Include(c => c.CurrentStatus)
             .Include(c => c.CreatedByUser)
             .Include(c => c.LastUpdatedByUser)
             .OrderByDescending(c => c.LastUpdatedUtc)
@@ -41,7 +42,8 @@ public class CommunicationRepository : ICommunicationRepository
     {
         return await _context.Communications
             .Where(c => c.IsActive == true) // Manual soft delete filter
-            .Include(c => c.Type)
+            .Include(c => c.CommunicationType)
+            .Include(c => c.CurrentStatus)
             .Include(c => c.CreatedByUser)
             .Include(c => c.LastUpdatedByUser)
             .Include(c => c.StatusHistory)
@@ -90,11 +92,11 @@ public class CommunicationRepository : ICommunicationRepository
         }
     }
 
-    public async Task<bool> UpdateStatusAsync(int commId, string newStatus, string? notes = null, string? EventSource = null, int? userId = null)
+    public async Task<bool> UpdateStatusAsync(int commId, int newStatusId, string? notes = null, string? EventSource = null, int? userId = null)
     {
         try
         {
-            Console.WriteLine($"{"[REPO-START]".Pastel("#FF00FF")} {"UpdateStatusAsync called for Communication".Pastel("#FFFFFF")} {commId.ToString().Pastel("#00FFFF")} {"→".Pastel("#FFFF00")} {newStatus.Pastel("#00FF00")}");
+            Console.WriteLine($"{"[REPO-START]".Pastel("#FF00FF")} {"UpdateStatusAsync called for Communication".Pastel("#FFFFFF")} {commId.ToString().Pastel("#00FFFF")} {"→ StatusId:".Pastel("#FFFF00")} {newStatusId.ToString().Pastel("#00FF00")}");
             
             var communication = await _context.Communications.FindAsync(commId);
             if (communication == null)
@@ -103,14 +105,14 @@ public class CommunicationRepository : ICommunicationRepository
                 return false;
             }
 
-            Console.WriteLine($"{"[REPO-UPDATE]".Pastel("#00FFFF")} {"Updating communication status from".Pastel("#FFFFFF")} {communication.CurrentStatus.Pastel("#FFA500")} {"to".Pastel("#FFFFFF")} {newStatus.Pastel("#00FF00")}");
-            communication.CurrentStatus = newStatus;
+            Console.WriteLine($"{"[REPO-UPDATE]".Pastel("#00FFFF")} {"Updating communication status from ID".Pastel("#FFFFFF")} {communication.CurrentStatusId.ToString().Pastel("#FFA500")} {"to ID".Pastel("#FFFFFF")} {newStatusId.ToString().Pastel("#00FF00")}");
+            communication.CurrentStatusId = newStatusId;
             communication.LastUpdatedUtc = DateTime.UtcNow;
 
             var historyEntry = new CommunicationStatusHistory
             {
                 CommunicationId = commId,
-                StatusCode = newStatus,
+                GlobalStatusId = newStatusId,
                 OccurredUtc = DateTime.UtcNow,
                 Notes = notes ?? "Status changed via event",
                 EventSource = EventSource ?? "RabbitMQ",
@@ -119,7 +121,7 @@ public class CommunicationRepository : ICommunicationRepository
             
             Console.WriteLine($"{"[REPO-HISTORY]".Pastel("#FFFF00")} {"Creating history entry:".Pastel("#FFFFFF")}");
             Console.WriteLine($"  {"• CommunicationId:".Pastel("#00FFFF")} {historyEntry.CommunicationId}");
-            Console.WriteLine($"  {"• StatusCode:".Pastel("#00FFFF")} {historyEntry.StatusCode.Pastel("#00FF00")}");
+            Console.WriteLine($"  {"• GlobalStatusId:".Pastel("#00FFFF")} {historyEntry.GlobalStatusId.ToString().Pastel("#00FF00")}");
             Console.WriteLine($"  {"• Notes:".Pastel("#00FFFF")} {historyEntry.Notes.Pastel("#CCCCCC")}");
             Console.WriteLine($"  {"• EventSource:".Pastel("#00FFFF")} {historyEntry.EventSource.Pastel("#FFA500")}");
             Console.WriteLine($"  {"• UserId:".Pastel("#00FFFF")} {(historyEntry.UpdatedByUserId?.ToString() ?? "null").Pastel("#CCCCCC")}");
@@ -150,22 +152,24 @@ public class CommunicationRepository : ICommunicationRepository
         }
     }
 
-    public async Task<List<Communication>> GetByStatusAsync(string status)
+    public async Task<List<Communication>> GetByStatusAsync(int statusId)
     {
         return await _context.Communications
-            .Where(c => c.IsActive == true && c.CurrentStatus == status) // Manual soft delete filter
-            .Include(c => c.Type)
+            .Where(c => c.IsActive == true && c.CurrentStatusId == statusId) // Manual soft delete filter
+            .Include(c => c.CommunicationType)
+            .Include(c => c.CurrentStatus)
             .Include(c => c.CreatedByUser)
             .Include(c => c.LastUpdatedByUser)
             .OrderByDescending(c => c.LastUpdatedUtc)
             .ToListAsync();
     }
 
-    public async Task<List<Communication>> GetByTypeCode(string typeCode)
+    public async Task<List<Communication>> GetByTypeId(int typeId)
     {
         return await _context.Communications
-            .Where(c => c.IsActive == true && c.TypeCode == typeCode) // Manual soft delete filter
-            .Include(c => c.Type)
+            .Where(c => c.IsActive == true && c.CommunicationTypeId == typeId) // Manual soft delete filter
+            .Include(c => c.CommunicationType)
+            .Include(c => c.CurrentStatus)
             .Include(c => c.CreatedByUser)
             .Include(c => c.LastUpdatedByUser)
             .OrderByDescending(c => c.LastUpdatedUtc)
@@ -200,7 +204,8 @@ public class CommunicationRepository : ICommunicationRepository
     public async Task<List<Communication>> GetDeletedAsync()
     {
         return await _context.Communications
-            .Include(c => c.Type)
+            .Include(c => c.CommunicationType)
+            .Include(c => c.CurrentStatus)
             .Include(c => c.CreatedByUser)
             .Include(c => c.LastUpdatedByUser)
             .Where(c => c.IsActive == false)
