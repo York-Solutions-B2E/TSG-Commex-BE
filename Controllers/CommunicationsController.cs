@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using TSG_Commex_BE.Data;
 using TSG_Commex_BE.Services.Interfaces;
-using TSG_Commex_BE.DTOs.Response;
-using TSG_Commex_BE.DTOs.Request;
+using TSG_Commex_Shared.DTOs;
+using TSG_Commex_Shared.DTOs.Request;
 
 
 namespace TSG_Commex_BE.Controllers;
@@ -75,7 +75,7 @@ public class CommunicationsController : ControllerBase
     {
         try
         {
-            _logger.LogInformation("📝 Creating new communication of type: {TypeCode}", request.TypeCode);
+            _logger.LogInformation("📝 Creating new communication of type ID: {TypeId}", request.CommunicationTypeId);
 
             var communication = await _communicationService.CreateCommunicationAsync(request);
 

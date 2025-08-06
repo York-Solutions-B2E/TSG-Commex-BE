@@ -63,6 +63,16 @@ public class GlobalStatusesController : ControllerBase
             var status = await _globalStatusService.CreateStatusAsync(request);
             return CreatedAtAction(nameof(GetStatusById), new { id = status.Id }, status);
         }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Business logic error creating global status");
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid argument creating global status");
+            return BadRequest(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating global status");

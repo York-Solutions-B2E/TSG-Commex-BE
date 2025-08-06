@@ -1,5 +1,5 @@
-using TSG_Commex_BE.DTOs.Response;
-using TSG_Commex_BE.DTOs.Request;
+using TSG_Commex_Shared.DTOs;
+using TSG_Commex_Shared.DTOs.Request;
 using TSG_Commex_BE.Models.Domain;
 using Microsoft.EntityFrameworkCore;
 using TSG_Commex_BE.Repositories.Interfaces;
@@ -13,6 +13,7 @@ public class CommunicationService : ICommunicationService
     private readonly ICommunicationTypeStatusRepository _communicationTypeStatusRepository;
     private readonly ICommunicationTypeRepository _communicationTypeRepository;
     private readonly IGlobalStatusRepository _globalStatusRepository;
+    private readonly IMemberRepository _memberRepository;
     private readonly ILogger<CommunicationService> _logger;
 
     public CommunicationService(
@@ -20,12 +21,14 @@ public class CommunicationService : ICommunicationService
         ICommunicationTypeStatusRepository communicationTypeStatusRepository,
         ICommunicationTypeRepository communicationTypeRepository,
         IGlobalStatusRepository globalStatusRepository,
+        IMemberRepository memberRepository,
         ILogger<CommunicationService> logger)
     {
         _communicationRepository = communicationRepository;
         _communicationTypeStatusRepository = communicationTypeStatusRepository;
         _communicationTypeRepository = communicationTypeRepository;
         _globalStatusRepository = globalStatusRepository;
+        _memberRepository = memberRepository;
         _logger = logger;
     }
 
@@ -67,26 +70,37 @@ public class CommunicationService : ICommunicationService
         if (string.IsNullOrWhiteSpace(request.Title))
             throw new ArgumentException("Title is required", nameof(request));
 
-        if (string.IsNullOrWhiteSpace(request.TypeCode))
-            throw new ArgumentException("TypeCode is required", nameof(request));
+        // Validate member exists
+        var member = await _memberRepository.GetByIdAsync(request.MemberId);
+        if (member == null)
+            throw new ArgumentException($"Member with ID {request.MemberId} not found");
 
-        // Lookup IDs from codes using repositories
-        var type = await _communicationTypeRepository.GetByTypeCodeAsync(request.TypeCode);
-        if (type == null)
-            throw new ArgumentException($"Invalid TypeCode: {request.TypeCode}");
-
-        var status = await _globalStatusRepository.GetByStatusCodeAsync("ReadyForRelease");
-        if (status == null)
-            throw new ArgumentException("Default status 'ReadyForRelease' not found");
+        // Use the provided InitialStatusId or default to ReadyForRelease
+        int statusId;
+        if (request.InitialStatusId.HasValue)
+        {
+            var status = await _globalStatusRepository.GetByIdAsync(request.InitialStatusId.Value);
+            if (status == null)
+                throw new ArgumentException($"Invalid status ID: {request.InitialStatusId}");
+            statusId = request.InitialStatusId.Value;
+        }
+        else
+        {
+            var defaultStatus = await _globalStatusRepository.GetByStatusCodeAsync("ReadyForRelease");
+            if (defaultStatus == null)
+                throw new ArgumentException("Default status 'ReadyForRelease' not found");
+            statusId = defaultStatus.Id;
+        }
 
         // Map DTO → Domain Model
         var communication = new Communication
         {
             Title = request.Title,
-            CommunicationTypeId = type.Id,
-            MemberInfo = request.MemberInfo,
+            CommunicationTypeId = request.CommunicationTypeId,
+            MemberId = request.MemberId,
             SourceFileUrl = request.SourceFileUrl,
-            CurrentStatusId = status.Id, // Default initial status
+            CurrentStatusId = statusId,
+            CreatedByUserId = request.CreatedByUserId,
             IsActive = true,
             CreatedUtc = DateTime.UtcNow,
             LastUpdatedUtc = DateTime.UtcNow
@@ -113,8 +127,17 @@ public class CommunicationService : ICommunicationService
             if (!string.IsNullOrWhiteSpace(request.Title))
                 communication.Title = request.Title;
             
-            if (!string.IsNullOrWhiteSpace(request.MemberInfo))
-                communication.MemberInfo = request.MemberInfo;
+            if (request.MemberId.HasValue && request.MemberId.Value > 0)
+                communication.MemberId = request.MemberId.Value;
+                
+            if (!string.IsNullOrWhiteSpace(request.SourceFileUrl))
+                communication.SourceFileUrl = request.SourceFileUrl;
+                
+            if (request.CurrentStatusId.HasValue)
+                communication.CurrentStatusId = request.CurrentStatusId.Value;
+                
+            if (request.UpdatedByUserId.HasValue)
+                communication.LastUpdatedByUserId = request.UpdatedByUserId.Value;
                 
             communication.LastUpdatedUtc = DateTime.UtcNow;
 
@@ -146,7 +169,7 @@ public class CommunicationService : ICommunicationService
         }
     }
 
-    public async Task<bool> ChangeStatusAsync(int id, string newStatus, string userId)
+    public async Task<bool> ChangeStatusAsync(int id, int newStatusId, int? userId = null)
     {
         try
         {
@@ -154,8 +177,15 @@ public class CommunicationService : ICommunicationService
             if (communication == null)
                 return false;
 
-            communication.CurrentStatus = newStatus;
+            // Validate status exists
+            var status = await _globalStatusRepository.GetByIdAsync(newStatusId);
+            if (status == null)
+                return false;
+
+            communication.CurrentStatusId = newStatusId;
             communication.LastUpdatedUtc = DateTime.UtcNow;
+            if (userId.HasValue)
+                communication.LastUpdatedByUserId = userId.Value;
             
             await _communicationRepository.UpdateAsync(communication);
             return true;
@@ -167,30 +197,30 @@ public class CommunicationService : ICommunicationService
         }
     }
 
-    public async Task<IEnumerable<CommunicationResponse>> GetByStatusAsync(string status)
+    public async Task<IEnumerable<CommunicationResponse>> GetByStatusAsync(int statusId)
     {
         try
         {
-            var communications = await _communicationRepository.GetByStatusAsync(status);
+            var communications = await _communicationRepository.GetByStatusAsync(statusId);
             return communications.Select(c => MapToResponse(c)).ToList();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching communications by status: {Status}", status);
+            _logger.LogError(ex, "Error fetching communications by status ID: {StatusId}", statusId);
             throw;
         }
     }
 
-    public async Task<IEnumerable<CommunicationResponse>> GetByTypeAsync(string typeCode)
+    public async Task<IEnumerable<CommunicationResponse>> GetByTypeAsync(int typeId)
     {
         try
         {
-            var communications = await _communicationRepository.GetByTypeCode(typeCode);
+            var communications = await _communicationRepository.GetByTypeId(typeId);
             return communications.Select(c => MapToResponse(c)).ToList();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching communications by type: {TypeCode}", typeCode);
+            _logger.LogError(ex, "Error fetching communications by type ID: {TypeId}", typeId);
             throw;
         }
     }
@@ -200,14 +230,19 @@ public class CommunicationService : ICommunicationService
         return new CommunicationResponse
         {
             Id = communication.Id,
-            TypeCode = communication.TypeCode,
-            Subject = communication.Title, // Map Title to Subject
-            Message = communication.MemberInfo, // Map MemberInfo to Message
-            CurrentStatus = communication.CurrentStatus,
-            RecipientInfo = communication.MemberInfo ?? "Unknown",
+            CommunicationTypeId = communication.CommunicationTypeId,
+            TypeCode = communication.CommunicationType?.TypeCode ?? string.Empty,
+            CurrentStatusId = communication.CurrentStatusId,
+            CurrentStatus = communication.CurrentStatus?.StatusCode ?? string.Empty,
+            MemberId = communication.MemberId,
+            MemberName = communication.Member != null ? 
+                $"{communication.Member.FirstName} {communication.Member.LastName}" : string.Empty,
+            Subject = communication.Title,
+            Message = communication.SourceFileUrl,
+            RecipientInfo = communication.Member?.Email ?? "Unknown",
             CreatedUtc = communication.CreatedUtc,
             LastUpdatedUtc = communication.LastUpdatedUtc,
-            CreatedByUserName = "System" // No user tracking per project spec
+            CreatedByUserName = communication.CreatedByUser?.Email ?? "System"
         };
     }
 

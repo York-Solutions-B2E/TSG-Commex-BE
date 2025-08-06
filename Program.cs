@@ -147,12 +147,14 @@ builder.Services.AddScoped<ICommunicationRepository, CommunicationRepository>();
 builder.Services.AddScoped<ICommunicationTypeRepository, CommunicationTypeRepository>();
 builder.Services.AddScoped<ICommunicationTypeStatusRepository, CommunicationTypeStatusRepository>();
 builder.Services.AddScoped<IGlobalStatusRepository, GlobalStatusRepository>();
+builder.Services.AddScoped<IMemberRepository, MemberRepository>();
 
 // Register Services
 builder.Services.AddScoped<ICommunicationService, CommunicationService>();
 builder.Services.AddScoped<ICommunicationTypeService, CommunicationTypeService>();
 builder.Services.AddScoped<IEventProcessingService, EventProcessingService>();
 builder.Services.AddScoped<IWorkflowService, WorkflowService>();
+builder.Services.AddScoped<IGlobalStatusService, GlobalStatusService>();
 
 // RabbitMQ configuration
 builder.Services.Configure<RabbitMQSettings>(builder.Configuration.GetSection("RabbitMQ"));

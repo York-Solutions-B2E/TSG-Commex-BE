@@ -5,6 +5,8 @@ using TSG_Commex_BE.Data;
 using TSG_Commex_BE.Models.Domain;
 using TSG_Commex_BE.Services.Interfaces;
 using TSG_Commex_Shared.DTOs;
+using TSG_Commex_Shared.DTOs.Request;
+using TSG_Commex_Shared.DTOs.Response;
 
 namespace TSG_Commex_BE.Controllers;
 
@@ -22,6 +24,112 @@ public class CommunicationTypesController : ControllerBase
     {
         _communicationTypeService = communicationTypeService;
         _logger = logger;
+    }
+
+    // GET: api/communication-types
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<CommunicationTypeResponse>>> GetAllTypes()
+    {
+        try
+        {
+            _logger.LogInformation("Fetching all communication types");
+            var types = await _communicationTypeService.GetAllTypesAsync();
+            return Ok(types);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving communication types");
+            return StatusCode(500, new { message = "Error retrieving communication types" });
+        }
+    }
+
+    // GET: api/communication-types/5
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<CommunicationTypeResponse>> GetTypeById(int id)
+    {
+        try
+        {
+            var type = await _communicationTypeService.GetTypeByIdAsync(id);
+            if (type == null)
+            {
+                return NotFound(new { message = $"Communication type with ID {id} not found" });
+            }
+            return Ok(type);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving communication type");
+            return StatusCode(500, new { message = "Error retrieving communication type" });
+        }
+    }
+
+    // POST: api/communication-types
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<CommunicationTypeResponse>> CreateType([FromBody] CreateCommunicationTypeRequest request)
+    {
+        try
+        {
+            var type = await _communicationTypeService.CreateTypeAsync(request);
+            return CreatedAtAction(nameof(GetTypeById), new { id = type.Id }, type);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Business logic error creating communication type");
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating communication type");
+            return StatusCode(500, new { message = "Error creating communication type" });
+        }
+    }
+
+    // PUT: api/communication-types/5
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateType(int id, [FromBody] UpdateCommunicationTypeRequest request)
+    {
+        try
+        {
+            var result = await _communicationTypeService.UpdateTypeAsync(id, request);
+            if (!result)
+            {
+                return NotFound(new { message = $"Communication type with ID {id} not found" });
+            }
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating communication type");
+            return StatusCode(500, new { message = "Error updating communication type" });
+        }
+    }
+
+    // DELETE: api/communication-types/5
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeleteType(int id)
+    {
+        try
+        {
+            var result = await _communicationTypeService.DeleteTypeAsync(id);
+            if (!result)
+            {
+                return NotFound(new { message = $"Communication type with ID {id} not found" });
+            }
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Cannot delete communication type");
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting communication type");
+            return StatusCode(500, new { message = "Error deleting communication type" });
+        }
     }
 
     [HttpGet("{typeCode}/statuses")]

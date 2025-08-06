@@ -9,13 +9,16 @@ namespace TSG_Commex_BE.Services.Implementations;
 public class EventProcessingService : IEventProcessingService
 {
     private readonly ICommunicationRepository _communicationRepository;
+    private readonly IGlobalStatusRepository _globalStatusRepository;
     private readonly ILogger<EventProcessingService> _logger;
 
     public EventProcessingService(
         ICommunicationRepository communicationRepository,
+        IGlobalStatusRepository globalStatusRepository,
         ILogger<EventProcessingService> logger)
     {
         _communicationRepository = communicationRepository;
+        _globalStatusRepository = globalStatusRepository;
         _logger = logger;
     }
 
@@ -36,9 +39,18 @@ public class EventProcessingService : IEventProcessingService
                 return;
             }
 
+            // Lookup the status ID from the status code
+            var status = await _globalStatusRepository.GetByStatusCodeAsync(eventData.NewStatus);
+            if (status == null)
+            {
+                var errorMessage = $"Invalid status code: {eventData.NewStatus}";
+                Console.WriteLine($"{"[ERROR]".Pastel(Color.Red)} {errorMessage}");
+                return;
+            }
+
             var success = await _communicationRepository.UpdateStatusAsync(
                 communicationId,
-                eventData.NewStatus,
+                status.Id,
                 eventData.Notes,      // Pass the notes from the event
                 eventData.Source,     // Pass the source (e.g., "EventSimulator")
                 null                  // No user ID for system events
