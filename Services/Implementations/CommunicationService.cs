@@ -4,6 +4,7 @@ using TSG_Commex_BE.Models.Domain;
 using Microsoft.EntityFrameworkCore;
 using TSG_Commex_BE.Repositories.Interfaces;
 using TSG_Commex_BE.Services.Interfaces;
+using System.Linq;
 
 namespace TSG_Commex_BE.Services.Implementations;
 
@@ -169,7 +170,7 @@ public class CommunicationService : ICommunicationService
         }
     }
 
-    public async Task<bool> ChangeStatusAsync(int id, int newStatusId, int? userId = null)
+    public async Task<bool> UpdateStatusAsync(int id, int newStatusId, int? userId = null)
     {
         try
         {
@@ -221,6 +222,62 @@ public class CommunicationService : ICommunicationService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching communications by type ID: {TypeId}", typeId);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<CommunicationResponse>> GetByMemberIdAsync(int memberId)
+    {
+        try
+        {
+            _logger.LogInformation("Fetching communications for member ID: {MemberId}", memberId);
+            var communications = await _communicationRepository.GetByMemberIdAsync(memberId);
+            return communications.Select(c => MapToResponse(c)).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching communications for member ID: {MemberId}", memberId);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<TSG_Commex_Shared.DTOs.CommunicationStatusHistory>?> GetCommunicationStatusHistoryAsync(int communicationId)
+    {
+        try
+        {
+            _logger.LogInformation("Fetching status history for communication {Id}", communicationId);
+            
+            // First check if communication exists
+            var communication = await _communicationRepository.GetByIdAsync(communicationId);
+            if (communication == null)
+            {
+                _logger.LogWarning("Communication {Id} not found", communicationId);
+                return null;
+            }
+
+            // Get status history from repository
+            var history = await _communicationRepository.GetStatusHistoryAsync(communicationId);
+            
+            // Map to DTOs
+            var historyDtos = history.Select(h => new TSG_Commex_Shared.DTOs.CommunicationStatusHistory
+            {
+                Id = h.Id,
+                CommunicationId = h.CommunicationId,
+                StatusCode = h.GlobalStatus?.StatusCode ?? "Unknown",
+                OccurredUtc = h.OccurredUtc,
+                Notes = h.Notes,
+                EventSource = h.EventSource,
+                UpdatedByUserName = h.UpdatedByUser?.Email ?? "System"
+            }).ToList();
+
+            _logger.LogInformation("Found {Count} status history records for communication {Id}", 
+                historyDtos.Count(), communicationId);
+            
+            return historyDtos;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching status history for communication {Id}", communicationId);
             throw;
         }
     }

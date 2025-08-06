@@ -99,6 +99,11 @@ public class CommunicationTypesController : ControllerBase
             }
             return NoContent();
         }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Business logic error updating communication type");
+            return BadRequest(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating communication type");

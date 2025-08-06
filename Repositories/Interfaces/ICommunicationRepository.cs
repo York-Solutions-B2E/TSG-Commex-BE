@@ -15,6 +15,8 @@ public interface ICommunicationRepository
     Task<List<Communication>> GetByStatusAsync(int statusId);
 
     Task<List<Communication>> GetByTypeId(int typeId);
+    Task<IEnumerable<CommunicationStatusHistory>> GetStatusHistoryAsync(int communicationId);
+    Task<List<Communication>> GetByMemberIdAsync(int memberId);
 
     // Soft Delete Methods
     Task<bool> RestoreAsync(int id);

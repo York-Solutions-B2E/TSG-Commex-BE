@@ -11,7 +11,9 @@ public interface ICommunicationService
     Task<CommunicationResponse> CreateCommunicationAsync(CreateCommunicationRequest request);
     Task<bool> UpdateCommunicationAsync(int id, UpdateCommunicationRequest request);
     Task<bool> DeleteCommunicationAsync(int id);
-    Task<bool> ChangeStatusAsync(int id, int newStatusId, int? userId = null);
+    Task<bool> UpdateStatusAsync(int id, int newStatusId, int? userId = null);
     Task<IEnumerable<CommunicationResponse>> GetByStatusAsync(int statusId);
     Task<IEnumerable<CommunicationResponse>> GetByTypeAsync(int typeId);
+    Task<IEnumerable<TSG_Commex_Shared.DTOs.CommunicationStatusHistory>?> GetCommunicationStatusHistoryAsync(int communicationId);
+    Task<IEnumerable<CommunicationResponse>> GetByMemberIdAsync(int memberId);
 }

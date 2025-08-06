@@ -176,6 +176,29 @@ public class CommunicationRepository : ICommunicationRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<CommunicationStatusHistory>> GetStatusHistoryAsync(int communicationId)
+    {
+        return await _context.CommunicationStatusHistories
+            .Where(h => h.CommunicationId == communicationId)
+            .Include(h => h.GlobalStatus)
+            .Include(h => h.UpdatedByUser)
+            .OrderBy(h => h.OccurredUtc)
+            .ToListAsync();
+    }
+
+    public async Task<List<Communication>> GetByMemberIdAsync(int memberId)
+    {
+        return await _context.Communications
+            .Where(c => c.IsActive == true && c.MemberId == memberId)
+            .Include(c => c.CommunicationType)
+            .Include(c => c.CurrentStatus)
+            .Include(c => c.Member)
+            .Include(c => c.CreatedByUser)
+            .Include(c => c.LastUpdatedByUser)
+            .OrderByDescending(c => c.LastUpdatedUtc)
+            .ToListAsync();
+    }
+
     // Soft Delete Utility Methods
     public async Task<bool> RestoreAsync(int id)
     {

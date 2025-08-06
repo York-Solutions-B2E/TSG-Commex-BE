@@ -78,12 +78,60 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 logger.LogInformation("  {Type}: {Value}", claim.Type, claim.Value);
             }
             
-            // The role assignment is already handled by the frontend
-            // The JWT already contains the role claim, so we don't need to add it again
+            // Check for role in different possible claim types from Okta
             var existingRole = context.Principal?.FindFirst("role")?.Value;
+            var groupsClaim = context.Principal?.FindFirst("groups")?.Value;
+            var rolesArrayClaim = context.Principal?.FindFirst("roles")?.Value;
+            
             logger.LogInformation("Existing role claim: {Role}", existingRole ?? "None");
+            logger.LogInformation("Groups claim: {Groups}", groupsClaim ?? "None");
+            logger.LogInformation("Roles array claim: {Roles}", rolesArrayClaim ?? "None");
             
             var additionalClaims = new List<Claim>();
+            
+            // Map Okta groups to roles if needed
+            if (!string.IsNullOrEmpty(groupsClaim))
+            {
+                // Okta sends groups as JSON array like ["Admin", "User"]
+                var groups = System.Text.Json.JsonSerializer.Deserialize<string[]>(groupsClaim);
+                if (groups != null)
+                {
+                    foreach (var group in groups)
+                    {
+                        additionalClaims.Add(new Claim(ClaimTypes.Role, group));
+                        logger.LogInformation("Added role claim from group: {Group}", group);
+                    }
+                }
+            }
+            
+            // Also check if there's a single "Admin" group
+            var adminGroupClaim = context.Principal?.Claims
+                .Where(c => c.Type == "groups" && c.Value == "Admin")
+                .FirstOrDefault();
+            
+            if (adminGroupClaim != null)
+            {
+                additionalClaims.Add(new Claim(ClaimTypes.Role, "Admin"));
+                logger.LogInformation("Added Admin role from groups claim");
+            }
+            
+            // DEVELOPMENT ONLY: Add admin role for specific test users
+            var isDevelopment = context.HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment();
+            if (isDevelopment)
+            {
+                var userName = context.Principal?.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+                var adminTestUsers = new[] { "MandradeC@yorksolutions.net", "admin@test.com" };
+                
+                if (!string.IsNullOrEmpty(userName) && adminTestUsers.Contains(userName, StringComparer.OrdinalIgnoreCase))
+                {
+                    additionalClaims.Add(new Claim(ClaimTypes.Role, "Admin"));
+                    logger.LogInformation("DEVELOPMENT: Added Admin role for test user: {User}", userName);
+                    
+                    // Also add a test member ID for development
+                    additionalClaims.Add(new Claim("member_id", "1"));
+                    logger.LogInformation("DEVELOPMENT: Added test member_id claim: 1");
+                }
+            }
 
             // If we have additional claims, create a new ClaimsIdentity
             if (additionalClaims.Any())

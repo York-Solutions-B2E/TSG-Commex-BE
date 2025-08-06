@@ -81,6 +81,20 @@ public class CommunicationTypeService : ICommunicationTypeService
         if (type == null)
             return false;
 
+        // Store old TypeCode in case we need to update status mappings
+        var oldTypeCode = type.TypeCode;
+
+        if (!string.IsNullOrEmpty(request.TypeCode))
+        {
+            // Check if new TypeCode is already in use by another type
+            var existingType = await _communicationTypeRepository.GetByTypeCodeAsync(request.TypeCode);
+            if (existingType != null && existingType.Id != id)
+            {
+                throw new InvalidOperationException($"Communication type with code '{request.TypeCode}' already exists");
+            }
+            type.TypeCode = request.TypeCode;
+        }
+
         if (!string.IsNullOrEmpty(request.DisplayName))
             type.DisplayName = request.DisplayName;
         
@@ -93,6 +107,7 @@ public class CommunicationTypeService : ICommunicationTypeService
         await _communicationTypeRepository.UpdateAsync(type);
         
         // Update status mappings if provided
+        // Use the new TypeCode if it was changed, otherwise use the old one
         if (request.StatusIds != null)
         {
             await UpdateStatusMappingsForTypeAsync(type.TypeCode, request.StatusIds);

@@ -11,7 +11,7 @@ namespace TSG_Commex_BE.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[AllowAnonymous] // Temporarily disabled auth for testing
+[AllowAnonymous] // Temporarily allow anonymous for development
 public class CommunicationsController : ControllerBase
 {
     private readonly ICommunicationService _communicationService;
@@ -32,8 +32,9 @@ public class CommunicationsController : ControllerBase
     {
         try
         {
-            _logger.LogInformation("📋 Fetching communications");
+            _logger.LogInformation("📋 Fetching all communications (auth disabled for development)");
 
+            // FOR DEVELOPMENT: Just return all communications
             var communications = await _communicationService.GetAllCommunicationsAsync();
 
             _logger.LogInformation("✅ Successfully retrieved {Count} communications", communications.Count());
@@ -42,6 +43,45 @@ public class CommunicationsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "❌ Error retrieving communications");
+            return StatusCode(500, new { message = "Error retrieving communications", error = ex.Message });
+        }
+    }
+    
+    [HttpGet("admin/all")]
+    public async Task<ActionResult<IEnumerable<CommunicationResponse>>> GetAllCommunicationsAdmin()
+    {
+        try
+        {
+            _logger.LogInformation("📋 Admin endpoint: Fetching all communications");
+
+            var communications = await _communicationService.GetAllCommunicationsAsync();
+
+            _logger.LogInformation("✅ Admin endpoint: Successfully retrieved {Count} communications", communications.Count());
+            return Ok(communications);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Error retrieving all communications");
+            return StatusCode(500, new { message = "Error retrieving communications", error = ex.Message });
+        }
+    }
+    
+    [HttpGet("member/{memberId}")]
+    public async Task<ActionResult<IEnumerable<CommunicationResponse>>> GetCommunicationsByMember(int memberId)
+    {
+        try
+        {
+            _logger.LogInformation("📋 Fetching communications for member {MemberId}", memberId);
+
+            var communications = await _communicationService.GetByMemberIdAsync(memberId);
+
+            _logger.LogInformation("✅ Successfully retrieved {Count} communications for member {MemberId}", 
+                communications.Count(), memberId);
+            return Ok(communications);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Error retrieving communications for member {MemberId}", memberId);
             return StatusCode(500, new { message = "Error retrieving communications", error = ex.Message });
         }
     }
@@ -136,6 +176,32 @@ public class CommunicationsController : ControllerBase
         {
             _logger.LogError(ex, "❌ Error deleting communication with ID: {Id}", id);
             return StatusCode(500, new { message = "Error deleting communication", error = ex.Message });
+        }
+    }
+
+    [HttpGet("{id}/status-history")]
+    public async Task<ActionResult<IEnumerable<CommunicationStatusHistory>>> GetCommunicationStatusHistory(int id)
+    {
+        try
+        {
+            _logger.LogInformation("📋 Fetching status history for communication {Id}", id);
+
+            var history = await _communicationService.GetCommunicationStatusHistoryAsync(id);
+
+            if (history == null)
+            {
+                _logger.LogWarning("⚠️ Communication with ID {Id} not found", id);
+                return NotFound(new { message = $"Communication with ID {id} not found" });
+            }
+
+            _logger.LogInformation("✅ Successfully retrieved {Count} status history records for communication {Id}", 
+                history.Count(), id);
+            return Ok(history);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Error retrieving status history for communication {Id}", id);
+            return StatusCode(500, new { message = "Error retrieving status history", error = ex.Message });
         }
     }
 }
