@@ -137,27 +137,48 @@ public class CommunicationTypesController : ControllerBase
         }
     }
 
-    [HttpGet("{typeCode}/statuses")]
-    public async Task<ActionResult<IEnumerable<CommunicationTypeStatusResponse>>> GetStatusesForType(string typeCode)
+    // PUT: api/communication-types/5/statuses
+    [HttpPut("{id:int}/statuses")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateTypeStatuses(int id, [FromBody] UpdateTypeStatusesRequest request)
     {
         try
         {
-            _logger.LogInformation("📋 Fetching statuses for communication type: {TypeCode}", typeCode);
+            var result = await _communicationTypeService.UpdateStatusMappingsForTypeAsync(id, request.StatusIds);
+            if (!result)
+            {
+                return NotFound(new { message = $"Communication type with ID {id} not found" });
+            }
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating statuses for communication type");
+            return StatusCode(500, new { message = "Error updating type statuses" });
+        }
+    }
+
+    [HttpGet("{id:int}/statuses")]
+    public async Task<ActionResult<IEnumerable<CommunicationTypeStatusResponse>>> GetStatusesForType(int id)
+    {
+        try
+        {
+            _logger.LogInformation("📋 Fetching statuses for communication type: {TypeId}", id);
             
-            var statuses = await _communicationTypeService.GetStatusesForTypeAsync(typeCode);
+            var statuses = await _communicationTypeService.GetStatusesForTypeAsync(id);
             
             if (!statuses.Any())
             {
-                _logger.LogWarning("⚠️ No statuses found for type: {TypeCode}", typeCode);
-                return NotFound(new { message = $"No statuses found for communication type: {typeCode}" });
+                _logger.LogWarning("⚠️ No statuses found for type: {TypeId}", id);
+                return NotFound(new { message = $"No statuses found for communication type with ID: {id}" });
             }
             
-            _logger.LogInformation("✅ Successfully retrieved {Count} statuses for type: {TypeCode}", statuses.Count(), typeCode);
+            _logger.LogInformation("✅ Successfully retrieved {Count} statuses for type: {TypeId}", statuses.Count(), id);
             return Ok(statuses);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error retrieving statuses for communication type: {TypeCode}", typeCode);
+            _logger.LogError(ex, "❌ Error retrieving statuses for communication type: {TypeId}", id);
             return StatusCode(500, new { message = "Error retrieving statuses", error = ex.Message });
         }
     }

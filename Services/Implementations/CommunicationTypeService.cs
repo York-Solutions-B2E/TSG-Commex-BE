@@ -4,8 +4,6 @@ using TSG_Commex_BE.Services.Interfaces;
 using TSG_Commex_Shared.DTOs;
 using TSG_Commex_Shared.DTOs.Request;
 using TSG_Commex_Shared.DTOs.Response;
-using Microsoft.EntityFrameworkCore;
-using TSG_Commex_BE.Data;
 
 namespace TSG_Commex_BE.Services.Implementations;
 
@@ -13,18 +11,15 @@ public class CommunicationTypeService : ICommunicationTypeService
 {
     private readonly ICommunicationTypeRepository _communicationTypeRepository;
     private readonly ICommunicationTypeStatusRepository _communicationTypeStatusRepository;
-    private readonly ApplicationDbContext _context;
     private readonly ILogger<CommunicationTypeService> _logger;
 
     public CommunicationTypeService(
         ICommunicationTypeRepository communicationTypeRepository,
         ICommunicationTypeStatusRepository communicationTypeStatusRepository,
-        ApplicationDbContext context,
         ILogger<CommunicationTypeService> logger)
     {
         _communicationTypeRepository = communicationTypeRepository;
         _communicationTypeStatusRepository = communicationTypeStatusRepository;
-        _context = context;
         _logger = logger;
     }
     // CRUD Operations
@@ -69,7 +64,7 @@ public class CommunicationTypeService : ICommunicationTypeService
         // Add status mappings if provided
         if (request.StatusIds.Any())
         {
-            await UpdateStatusMappingsForTypeAsync(created.TypeCode, request.StatusIds);
+            await UpdateStatusMappingsForTypeAsync(created.Id, request.StatusIds);
         }
         
         return await MapToResponseAsync(created);
@@ -107,10 +102,10 @@ public class CommunicationTypeService : ICommunicationTypeService
         await _communicationTypeRepository.UpdateAsync(type);
         
         // Update status mappings if provided
-        // Use the new TypeCode if it was changed, otherwise use the old one
+        // Update status mappings if provided
         if (request.StatusIds != null)
         {
-            await UpdateStatusMappingsForTypeAsync(type.TypeCode, request.StatusIds);
+            await UpdateStatusMappingsForTypeAsync(id, request.StatusIds);
         }
         
         return true;
@@ -122,71 +117,36 @@ public class CommunicationTypeService : ICommunicationTypeService
     }
 
     // Status Mapping Operations
-    public async Task<IEnumerable<int>> GetStatusIdsForTypeAsync(string typeCode)
+    public async Task<IEnumerable<int>> GetStatusIdsForTypeAsync(int typeId)
     {
-        var mappings = await _context.CommunicationTypeStatuses
-            .Where(cts => cts.CommunicationType.TypeCode == typeCode && cts.IsActive)
-            .Select(cts => cts.GlobalStatusId)
-            .ToListAsync();
-            
-        return mappings;
+        // Get the status mappings for this type
+        var mappings = await _communicationTypeStatusRepository.GetStatusIdsForTypeAsync(typeId);
+        
+        // Extract just the status IDs
+        return mappings.Select(m => m.GlobalStatusId).ToList();
     }
 
-    public async Task<bool> UpdateStatusMappingsForTypeAsync(string typeCode, List<int> statusIds)
+    public async Task<bool> UpdateStatusMappingsForTypeAsync(int typeId, List<int> statusIds)
     {
-        using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            // Get the type
-            var type = await _communicationTypeRepository.GetByTypeCodeAsync(typeCode);
-            if (type == null)
-                return false;
-
-            // Deactivate existing mappings
-            var existingMappings = await _context.CommunicationTypeStatuses
-                .Where(cts => cts.CommunicationTypeId == type.Id && cts.IsActive)
-                .ToListAsync();
+            // Use repository to update mappings
+            await _communicationTypeStatusRepository.UpdateStatusMappingsAsync(typeId, statusIds);
             
-            foreach (var mapping in existingMappings)
-            {
-                mapping.IsActive = false;
-            }
-
-            // Add new mappings
-            foreach (var statusId in statusIds.Distinct())
-            {
-                var existingMapping = existingMappings.FirstOrDefault(m => m.GlobalStatusId == statusId);
-                if (existingMapping != null)
-                {
-                    existingMapping.IsActive = true;
-                }
-                else
-                {
-                    _context.CommunicationTypeStatuses.Add(new CommunicationTypeStatus
-                    {
-                        CommunicationTypeId = type.Id,
-                        GlobalStatusId = statusId,
-                        IsActive = true
-                    });
-                }
-            }
-
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+            _logger.LogInformation("Updated status mappings for type {TypeId}", typeId);
             return true;
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
-            _logger.LogError(ex, "Error updating status mappings for type {TypeCode}", typeCode);
-            throw;
+            _logger.LogError(ex, "Error updating status mappings for type {TypeId}", typeId);
+            return false;
         }
     }
 
-    // Keep the existing method for backward compatibility
-    public async Task<IEnumerable<CommunicationTypeStatusResponse>> GetStatusesForTypeAsync(string typeCode)
+    // Get the statuses for a type
+    public async Task<IEnumerable<CommunicationTypeStatusResponse>> GetStatusesForTypeAsync(int typeId)
     {
-        var statuses = await _communicationTypeStatusRepository.GetStatusesForCommunicationTypeAsync(typeCode);
+        var statuses = await _communicationTypeStatusRepository.GetStatusIdsForTypeAsync(typeId);
         
         return statuses.Select(cts => new CommunicationTypeStatusResponse
         {
@@ -201,7 +161,7 @@ public class CommunicationTypeService : ICommunicationTypeService
     // Helper method
     private async Task<CommunicationTypeResponse> MapToResponseAsync(CommunicationType type)
     {
-        var statusIds = await GetStatusIdsForTypeAsync(type.TypeCode);
+        var statusIds = await GetStatusIdsForTypeAsync(type.Id);
         
         return new CommunicationTypeResponse
         {

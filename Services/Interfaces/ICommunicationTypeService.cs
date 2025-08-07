@@ -15,7 +15,7 @@ public interface ICommunicationTypeService
     Task<bool> DeleteTypeAsync(int id);
 
     // Status mapping operations
-    Task<IEnumerable<int>> GetStatusIdsForTypeAsync(string typeCode);
-    Task<bool> UpdateStatusMappingsForTypeAsync(string typeCode, List<int> statusIds);
-    Task<IEnumerable<CommunicationTypeStatusResponse>> GetStatusesForTypeAsync(string typeCode);
+    Task<IEnumerable<int>> GetStatusIdsForTypeAsync(int typeId);
+    Task<bool> UpdateStatusMappingsForTypeAsync(int typeId, List<int> statusIds);
+    Task<IEnumerable<CommunicationTypeStatusResponse>> GetStatusesForTypeAsync(int typeId);
 }
