@@ -12,7 +12,7 @@ namespace TSG_Commex_BE.Controllers;
 
 [ApiController]
 [Route("api/communication-types")]
-[AllowAnonymous] // Temporarily disabled auth for testing
+[Authorize]
 public class CommunicationTypesController : ControllerBase
 {
     private readonly ICommunicationTypeService _communicationTypeService;

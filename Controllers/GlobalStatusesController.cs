@@ -8,7 +8,7 @@ namespace TSG_Commex_BE.Controllers;
 
 [ApiController]
 [Route("api/global-statuses")]
-[AllowAnonymous] // Or [Authorize(Roles = "Admin")] if you want admin-only
+[Authorize(Roles = "Admin")] // Admin-only access for status management
 public class GlobalStatusesController : ControllerBase
 {
     private readonly IGlobalStatusService _globalStatusService;

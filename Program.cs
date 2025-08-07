@@ -25,134 +25,28 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddControllers();
 
-// Configure JWT Bearer Authentication manually (more reliable than AddOktaWebApi)
+// Configure JWT Bearer Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 .AddJwtBearer(options =>
 {
     options.Authority = $"{builder.Configuration["Okta:OktaDomain"]}/oauth2/default";
     options.Audience = "api://default";
-    options.RequireHttpsMetadata = true;
-    
-    // Configure Token validation Parameters to accept groups in role based authorization
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        RoleClaimType = "role", // Tell .NET to treat "role" claims as roles for authorization
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ClockSkew = TimeSpan.FromMinutes(2)
-    };
-    
-    // In development, accept any SSL certificate AND log more details
-    if (builder.Environment.IsDevelopment())
-    {
-        options.BackchannelHttpHandler = new HttpClientHandler
-        {
-            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-        };
-        
-        // Add more detailed logging
-        options.IncludeErrorDetails = true;
-        
-        // Force refresh of discovery document
-        options.RefreshOnIssuerKeyNotFound = true;
-    }
     options.Events = new JwtBearerEvents
     {
         OnTokenValidated = context =>
         {
-            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            // Map Okta groups to ASP.NET Core roles (REQUIRED for role-based authorization)
+            var identity = context.Principal?.Identity as ClaimsIdentity;
+            var groupsClaims = context.Principal?.Claims
+                .Where(c => c.Type == "groups")
+                .Select(c => c.Value)
+                .ToList();
             
-            // Extract user info from JWT claims
-            var email = context.Principal?.FindFirst("email")?.Value;
-            var name = context.Principal?.FindFirst("name")?.Value ?? 
-                      context.Principal?.FindFirst("preferred_username")?.Value;
-            
-            logger.LogInformation("JWT validated for user: {Email}", email);
-
-            // Log all claims for debugging
-            logger.LogInformation("All JWT claims:");
-            foreach (var claim in context.Principal?.Claims ?? Enumerable.Empty<Claim>())
+            foreach (var group in groupsClaims)
             {
-                logger.LogInformation("  {Type}: {Value}", claim.Type, claim.Value);
-            }
-            
-            // Check for role in different possible claim types from Okta
-            var existingRole = context.Principal?.FindFirst("role")?.Value;
-            var groupsClaim = context.Principal?.FindFirst("groups")?.Value;
-            var rolesArrayClaim = context.Principal?.FindFirst("roles")?.Value;
-            
-            logger.LogInformation("Existing role claim: {Role}", existingRole ?? "None");
-            logger.LogInformation("Groups claim: {Groups}", groupsClaim ?? "None");
-            logger.LogInformation("Roles array claim: {Roles}", rolesArrayClaim ?? "None");
-            
-            var additionalClaims = new List<Claim>();
-            
-            // Map Okta groups to roles if needed
-            if (!string.IsNullOrEmpty(groupsClaim))
-            {
-                // Okta sends groups as JSON array like ["Admin", "User"]
-                var groups = System.Text.Json.JsonSerializer.Deserialize<string[]>(groupsClaim);
-                if (groups != null)
-                {
-                    foreach (var group in groups)
-                    {
-                        additionalClaims.Add(new Claim(ClaimTypes.Role, group));
-                        logger.LogInformation("Added role claim from group: {Group}", group);
-                    }
-                }
-            }
-            
-            // Also check if there's a single "Admin" group
-            var adminGroupClaim = context.Principal?.Claims
-                .Where(c => c.Type == "groups" && c.Value == "Admin")
-                .FirstOrDefault();
-            
-            if (adminGroupClaim != null)
-            {
-                additionalClaims.Add(new Claim(ClaimTypes.Role, "Admin"));
-                logger.LogInformation("Added Admin role from groups claim");
-            }
-            
-            // DEVELOPMENT ONLY: Add admin role for specific test users
-            var isDevelopment = context.HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment();
-            if (isDevelopment)
-            {
-                var userName = context.Principal?.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
-                var adminTestUsers = new[] { "MandradeC@yorksolutions.net", "admin@test.com" };
-                
-                if (!string.IsNullOrEmpty(userName) && adminTestUsers.Contains(userName, StringComparer.OrdinalIgnoreCase))
-                {
-                    additionalClaims.Add(new Claim(ClaimTypes.Role, "Admin"));
-                    logger.LogInformation("DEVELOPMENT: Added Admin role for test user: {User}", userName);
-                    
-                    // Also add a test member ID for development
-                    additionalClaims.Add(new Claim("member_id", "1"));
-                    logger.LogInformation("DEVELOPMENT: Added test member_id claim: 1");
-                }
+                identity?.AddClaim(new Claim(ClaimTypes.Role, group));
             }
 
-            // If we have additional claims, create a new ClaimsIdentity
-            if (additionalClaims.Any())
-            {
-                var identity = context.Principal?.Identity as ClaimsIdentity;
-                identity?.AddClaims(additionalClaims);
-            }
-
-            return Task.CompletedTask;
-        },
-        OnAuthenticationFailed = context =>
-        {
-            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogError(context.Exception, "JWT authentication failed: {Error}", context.Exception.Message);
-            
-            // Log additional details in development
-            if (builder.Environment.IsDevelopment())
-            {
-                logger.LogError("Token: {Token}", context.Request.Headers.Authorization.FirstOrDefault());
-            }
-            
             return Task.CompletedTask;
         }
     };

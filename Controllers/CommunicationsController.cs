@@ -11,7 +11,7 @@ namespace TSG_Commex_BE.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[AllowAnonymous] // Temporarily allow anonymous for development
+[Authorize]
 public class CommunicationsController : ControllerBase
 {
     private readonly ICommunicationService _communicationService;
@@ -48,6 +48,7 @@ public class CommunicationsController : ControllerBase
     }
     
     [HttpGet("admin/all")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<IEnumerable<CommunicationResponse>>> GetAllCommunicationsAdmin()
     {
         try
@@ -111,6 +112,7 @@ public class CommunicationsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<CommunicationResponse>> CreateCommunication([FromBody] CreateCommunicationRequest request)
     {
         try

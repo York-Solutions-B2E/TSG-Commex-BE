@@ -7,7 +7,7 @@ namespace TSG_Commex_BE.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[AllowAnonymous] // Temporarily disabled auth for testing
+[Authorize]
 public class EventsController : ControllerBase
 {
     private readonly IRabbitMQPublisher _publisher;
