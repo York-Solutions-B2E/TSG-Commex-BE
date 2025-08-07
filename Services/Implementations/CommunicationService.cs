@@ -67,54 +67,69 @@ public class CommunicationService : ICommunicationService
 
     public async Task<CommunicationResponse> CreateCommunicationAsync(CreateCommunicationRequest request)
     {
-        // Validation
-        if (string.IsNullOrWhiteSpace(request.Title))
-            throw new ArgumentException("Title is required", nameof(request));
-
-        // Validate member exists
-        var member = await _memberRepository.GetByIdAsync(request.MemberId);
-        if (member == null)
-            throw new ArgumentException($"Member with ID {request.MemberId} not found");
-
-        // Use the provided InitialStatusId or default to ReadyForRelease
-        int statusId;
-        if (request.InitialStatusId.HasValue)
+        try
         {
-            var status = await _globalStatusRepository.GetByIdAsync(request.InitialStatusId.Value);
-            if (status == null)
-                throw new ArgumentException($"Invalid status ID: {request.InitialStatusId}");
-            statusId = request.InitialStatusId.Value;
+            // Validation
+            if (string.IsNullOrWhiteSpace(request.Title))
+                throw new ArgumentException("Title is required", nameof(request));
+
+            // Validate member exists
+            var member = await _memberRepository.GetByIdAsync(request.MemberId);
+            if (member == null)
+                throw new InvalidOperationException($"Member with ID {request.MemberId} not found");
+
+            // Validate communication type exists
+            var communicationType = await _communicationTypeRepository.GetByIdAsync(request.CommunicationTypeId);
+            if (communicationType == null)
+                throw new InvalidOperationException($"Communication type with ID {request.CommunicationTypeId} not found");
+
+            // Use the provided InitialStatusId or default to ReadyForRelease
+            int statusId;
+            if (request.InitialStatusId.HasValue)
+            {
+                var status = await _globalStatusRepository.GetByIdAsync(request.InitialStatusId.Value);
+                if (status == null)
+                    throw new InvalidOperationException($"Invalid status ID: {request.InitialStatusId}");
+                statusId = request.InitialStatusId.Value;
+            }
+            else
+            {
+                var defaultStatus = await _globalStatusRepository.GetByStatusCodeAsync("ReadyForRelease");
+                if (defaultStatus == null)
+                    throw new InvalidOperationException("Default status 'ReadyForRelease' not found");
+                statusId = defaultStatus.Id;
+            }
+
+            // Map DTO → Domain Model
+            var communication = new Communication
+            {
+                Title = request.Title,
+                CommunicationTypeId = request.CommunicationTypeId,
+                MemberId = request.MemberId,
+                SourceFileUrl = request.SourceFileUrl,
+                CurrentStatusId = statusId,
+                CreatedByUserId = request.CreatedByUserId,
+                IsActive = true,
+                CreatedUtc = DateTime.UtcNow,
+                LastUpdatedUtc = DateTime.UtcNow
+            };
+
+            // Call repository
+            var createdCommunication = await _communicationRepository.CreateAsync(communication);
+            
+            // Set navigation properties that we already have
+            createdCommunication.Member = member;
+            createdCommunication.CurrentStatus = await _globalStatusRepository.GetByIdAsync(statusId);
+            createdCommunication.CommunicationType = communicationType;
+
+            // Map Domain Model → Response DTO
+            return MapToResponse(createdCommunication);
         }
-        else
+        catch (Exception ex)
         {
-            var defaultStatus = await _globalStatusRepository.GetByStatusCodeAsync("ReadyForRelease");
-            if (defaultStatus == null)
-                throw new ArgumentException("Default status 'ReadyForRelease' not found");
-            statusId = defaultStatus.Id;
+            _logger.LogError(ex, "Error creating communication");
+            throw;
         }
-
-        // Map DTO → Domain Model
-        var communication = new Communication
-        {
-            Title = request.Title,
-            CommunicationTypeId = request.CommunicationTypeId,
-            MemberId = request.MemberId,
-            SourceFileUrl = request.SourceFileUrl,
-            CurrentStatusId = statusId,
-            CreatedByUserId = request.CreatedByUserId,
-            IsActive = true,
-            CreatedUtc = DateTime.UtcNow,
-            LastUpdatedUtc = DateTime.UtcNow
-        };
-
-        // Call repository
-        var createdCommunication = await _communicationRepository.CreateAsync(communication);
-        
-        // Reload with navigation properties for response mapping
-        createdCommunication = await _communicationRepository.GetByIdAsync(createdCommunication.Id);
-
-        // Map Domain Model → Response DTO
-        return MapToResponse(createdCommunication!);
     }
     public async Task<bool> UpdateCommunicationAsync(int id, UpdateCommunicationRequest request)
     {
