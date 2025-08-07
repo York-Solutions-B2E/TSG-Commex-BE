@@ -13,42 +13,125 @@ public class CommunicationTypeStatusRepository : ICommunicationTypeStatusReposit
     {
         _context = context;
     }
-    public async Task<IEnumerable<CommunicationTypeStatus>> GetStatusesForCommunicationTypeAsync(string typeCode)
+
+    public async Task<IEnumerable<CommunicationTypeStatus>> CreateStatusMappingsAsync(int typeId, List<int> statusIds)
+    {
+        var createdMappings = new List<CommunicationTypeStatus>();
+
+        foreach (var statusId in statusIds)
+        {
+            var mapping = new CommunicationTypeStatus
+            {
+                CommunicationTypeId = typeId,
+                GlobalStatusId = statusId,
+                IsActive = true
+            };
+
+            _context.CommunicationTypeStatuses.Add(mapping);
+            createdMappings.Add(mapping);
+        }
+
+        await _context.SaveChangesAsync();
+
+        return createdMappings;
+    }
+
+    public async Task<IEnumerable<CommunicationTypeStatus>> UpdateStatusMappingsAsync(int typeId, List<int> statusIds)
+    {
+        // Get existing mappings
+        var existingMappings = await _context.CommunicationTypeStatuses
+            .Where(cts => cts.CommunicationTypeId == typeId)
+            .ToListAsync();
+        
+        var existingStatusIds = existingMappings
+            .Where(m => m.IsActive)
+            .Select(m => m.GlobalStatusId)
+            .ToHashSet();
+        
+        var newStatusIds = statusIds.ToHashSet();
+        
+        // Determine what to add, remove, and reactivate
+        var toAdd = newStatusIds.Except(existingMappings.Select(m => m.GlobalStatusId));
+        var toDeactivate = existingStatusIds.Except(newStatusIds);
+        var toReactivate = newStatusIds.Intersect(
+            existingMappings.Where(m => !m.IsActive).Select(m => m.GlobalStatusId)
+        );
+        
+        // Deactivate removed mappings
+        if (toDeactivate.Any())
+        {
+            foreach (var mapping in existingMappings.Where(m => toDeactivate.Contains(m.GlobalStatusId)))
+            {
+                mapping.IsActive = false;
+            }
+        }
+        
+        // Reactivate previously deactivated mappings
+        if (toReactivate.Any())
+        {
+            foreach (var mapping in existingMappings.Where(m => toReactivate.Contains(m.GlobalStatusId)))
+            {
+                mapping.IsActive = true;
+            }
+        }
+        
+        // Add new mappings
+        if (toAdd.Any())
+        {
+            foreach (var statusId in toAdd)
+            {
+                var mapping = new CommunicationTypeStatus
+                {
+                    CommunicationTypeId = typeId,
+                    GlobalStatusId = statusId,
+                    IsActive = true
+                };
+                _context.CommunicationTypeStatuses.Add(mapping);
+            }
+        }
+        
+        await _context.SaveChangesAsync();
+        
+        // Return all active mappings
+        return await GetStatusIdsForTypeAsync(typeId);
+    }
+
+    public async Task<IEnumerable<CommunicationTypeStatus>> GetStatusIdsForTypeAsync(int typeId)
     {
         return await _context.CommunicationTypeStatuses
-            .Where(cts => cts.CommunicationType.TypeCode == typeCode && cts.IsActive)
+            .Where(cts => cts.CommunicationTypeId == typeId && cts.IsActive)
             .Include(cts => cts.GlobalStatus)
-            .OrderBy(cts => cts.GlobalStatus.Phase)
-            .ThenBy(cts => cts.GlobalStatus.DisplayName)
             .ToListAsync();
-
     }
-    // private readonly ApplicationDbContext _context;
 
-    // public CommunicationTypeStatusRepository(ApplicationDbContext context)
-    // {
-    //     _context = context;
-    // }
+    public async Task<bool> DeleteStatusMappingsForTypeAsync(int typeId)
+    {
+        var mappings = await _context.CommunicationTypeStatuses
+            .Where(cts => cts.CommunicationTypeId == typeId)
+            .ToListAsync();
+        
+        if (!mappings.Any())
+            return false;
+        
+        _context.CommunicationTypeStatuses.RemoveRange(mappings);
+        await _context.SaveChangesAsync();
+        
+        return true;
+    }
 
-    // public async Task<bool> IsValidStatusForTypeAsync(string typeCode, string statusCode)
-    // {
-    //     return await _context.CommunicationTypeStatuses
-    //         .AnyAsync(cts => cts.TypeCode == typeCode && cts.StatusCode == statusCode);
-    // }
-
-    // public async Task<IEnumerable<string>> GetValidStatusesForTypeAsync(string typeCode)
-    // {
-    //     return await _context.CommunicationTypeStatuses
-    //         .Where(cts => cts.TypeCode == typeCode)
-    //         .Select(cts => cts.StatusCode)
-    //         .ToListAsync();
-    // }
-
-    // public async Task<IEnumerable<GlobalStatus>> GetStatusesByPhaseAsync(string phase)
-    // {
-    //     return await _context.GlobalStatuses
-    //         .Where(gs => gs.Phase.ToString() == phase && gs.IsActive == true)
-    //         .OrderBy(gs => gs.DisplayName)
-    //         .ToListAsync();
-    // }
+    public async Task<bool> DeleteSingleStatusMappingAsync(int typeId, int statusId)
+    {
+        var mapping = await _context.CommunicationTypeStatuses
+            .FirstOrDefaultAsync(cts => 
+                cts.CommunicationTypeId == typeId && 
+                cts.GlobalStatusId == statusId);
+        
+        if (mapping == null)
+            return false;
+        
+        _context.CommunicationTypeStatuses.Remove(mapping);
+        await _context.SaveChangesAsync();
+        
+        return true;
+    }
 }
