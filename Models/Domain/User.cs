@@ -8,7 +8,7 @@ public class User
     public required string LastName { get; set; }
     public string? Role { get; set; } = "User"; // User, Admin
     public bool IsActive { get; set; } = true;
-    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedUtc { get; set; }
     public DateTime LastLoginUtc { get; set; }
 
     // Navigation properties

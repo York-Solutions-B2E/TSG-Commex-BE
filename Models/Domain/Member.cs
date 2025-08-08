@@ -15,8 +15,8 @@ public class Member
     public DateTime DateOfBirth { get; set; }
     public DateTime EnrollmentDate { get; set; }
     public bool IsActive { get; set; } = true;
-    public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
-    public DateTime LastUpdatedUtc { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedUtc { get; set; }
+    public DateTime LastUpdatedUtc { get; set; }
     
     // Navigation properties
     public List<Communication> Communications { get; set; } = new();

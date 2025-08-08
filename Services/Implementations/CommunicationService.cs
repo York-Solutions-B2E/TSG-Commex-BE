@@ -39,7 +39,7 @@ public class CommunicationService : ICommunicationService
         {
             _logger.LogInformation("Fetching all communications");
             var communications = await _communicationRepository.GetAllAsync();
-            
+
             return communications.Select(c => MapToResponse(c)).ToList();
         }
         catch (Exception ex)
@@ -55,7 +55,7 @@ public class CommunicationService : ICommunicationService
         {
             _logger.LogInformation("Fetching communication with ID: {Id}", id);
             var communication = await _communicationRepository.GetByIdAsync(id);
-            
+
             return communication == null ? null : MapToResponse(communication);
         }
         catch (Exception ex)
@@ -74,29 +74,21 @@ public class CommunicationService : ICommunicationService
                 throw new ArgumentException("Title is required", nameof(request));
 
             // Validate member exists
-            var member = await _memberRepository.GetByIdAsync(request.MemberId);
-            if (member == null)
-                throw new InvalidOperationException($"Member with ID {request.MemberId} not found");
+            var member = await _memberRepository.GetByIdAsync(request.MemberId) ?? throw new InvalidOperationException($"Member with ID {request.MemberId} not found");
 
             // Validate communication type exists
-            var communicationType = await _communicationTypeRepository.GetByIdAsync(request.CommunicationTypeId);
-            if (communicationType == null)
-                throw new InvalidOperationException($"Communication type with ID {request.CommunicationTypeId} not found");
+            var communicationType = await _communicationTypeRepository.GetByIdAsync(request.CommunicationTypeId) ?? throw new InvalidOperationException($"Communication type with ID {request.CommunicationTypeId} not found");
 
             // Use the provided InitialStatusId or default to ReadyForRelease
             int statusId;
             if (request.InitialStatusId.HasValue)
             {
-                var status = await _globalStatusRepository.GetByIdAsync(request.InitialStatusId.Value);
-                if (status == null)
-                    throw new InvalidOperationException($"Invalid status ID: {request.InitialStatusId}");
+                var status = await _globalStatusRepository.GetByIdAsync(request.InitialStatusId.Value) ?? throw new InvalidOperationException($"Invalid status ID: {request.InitialStatusId}");
                 statusId = request.InitialStatusId.Value;
             }
             else
             {
-                var defaultStatus = await _globalStatusRepository.GetByStatusCodeAsync("ReadyForRelease");
-                if (defaultStatus == null)
-                    throw new InvalidOperationException("Default status 'ReadyForRelease' not found");
+                var defaultStatus = await _globalStatusRepository.GetByStatusCodeAsync("ReadyForRelease") ?? throw new InvalidOperationException("Default status 'ReadyForRelease' not found");
                 statusId = defaultStatus.Id;
             }
 
@@ -109,14 +101,13 @@ public class CommunicationService : ICommunicationService
                 SourceFileUrl = request.SourceFileUrl,
                 CurrentStatusId = statusId,
                 CreatedByUserId = request.CreatedByUserId,
-                IsActive = true,
-                CreatedUtc = DateTime.UtcNow,
-                LastUpdatedUtc = DateTime.UtcNow
+                IsActive = true
+                // Timestamps are set in the repository
             };
 
             // Call repository
             var createdCommunication = await _communicationRepository.CreateAsync(communication);
-            
+
             // Set navigation properties that we already have
             createdCommunication.Member = member;
             createdCommunication.CurrentStatus = await _globalStatusRepository.GetByIdAsync(statusId);
@@ -142,21 +133,20 @@ public class CommunicationService : ICommunicationService
             // Update fields if provided
             if (!string.IsNullOrWhiteSpace(request.Title))
                 communication.Title = request.Title;
-            
+
             if (request.MemberId.HasValue && request.MemberId.Value > 0)
                 communication.MemberId = request.MemberId.Value;
-                
+
             if (!string.IsNullOrWhiteSpace(request.SourceFileUrl))
                 communication.SourceFileUrl = request.SourceFileUrl;
-                
+
             if (request.CurrentStatusId.HasValue)
                 communication.CurrentStatusId = request.CurrentStatusId.Value;
-                
+
             if (request.UpdatedByUserId.HasValue)
                 communication.LastUpdatedByUserId = request.UpdatedByUserId.Value;
-                
-            communication.LastUpdatedUtc = DateTime.UtcNow;
 
+            // Timestamp is set in the repository
             await _communicationRepository.UpdateAsync(communication);
             return true;
         }
@@ -199,10 +189,10 @@ public class CommunicationService : ICommunicationService
                 return false;
 
             communication.CurrentStatusId = newStatusId;
-            communication.LastUpdatedUtc = DateTime.UtcNow;
+            // Timestamp is set in the repository
             if (userId.HasValue)
                 communication.LastUpdatedByUserId = userId.Value;
-            
+
             await _communicationRepository.UpdateAsync(communication);
             return true;
         }
@@ -261,7 +251,7 @@ public class CommunicationService : ICommunicationService
         try
         {
             _logger.LogInformation("Fetching status history for communication {Id}", communicationId);
-            
+
             // First check if communication exists
             var communication = await _communicationRepository.GetByIdAsync(communicationId);
             if (communication == null)
@@ -272,7 +262,7 @@ public class CommunicationService : ICommunicationService
 
             // Get status history from repository
             var history = await _communicationRepository.GetStatusHistoryAsync(communicationId);
-            
+
             // Map to DTOs
             var historyDtos = history.Select(h => new TSG_Commex_Shared.DTOs.CommunicationStatusHistory
             {
@@ -285,9 +275,9 @@ public class CommunicationService : ICommunicationService
                 UpdatedByUserName = h.UpdatedByUser?.Email ?? "System"
             }).ToList();
 
-            _logger.LogInformation("Found {Count} status history records for communication {Id}", 
+            _logger.LogInformation("Found {Count} status history records for communication {Id}",
                 historyDtos.Count(), communicationId);
-            
+
             return historyDtos;
         }
         catch (Exception ex)
@@ -307,7 +297,7 @@ public class CommunicationService : ICommunicationService
             CurrentStatusId = communication.CurrentStatusId,
             CurrentStatus = communication.CurrentStatus?.StatusCode ?? string.Empty,
             MemberId = communication.MemberId,
-            MemberName = communication.Member != null ? 
+            MemberName = communication.Member != null ?
                 $"{communication.Member.FirstName} {communication.Member.LastName}" : string.Empty,
             Subject = communication.Title,
             Message = communication.SourceFileUrl,
