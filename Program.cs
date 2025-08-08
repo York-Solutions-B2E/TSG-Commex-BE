@@ -97,6 +97,7 @@ builder.Services.AddScoped<ICommunicationTypeService, CommunicationTypeService>(
 builder.Services.AddScoped<IEventProcessingService, EventProcessingService>();
 builder.Services.AddScoped<IWorkflowService, WorkflowService>();
 builder.Services.AddScoped<IGlobalStatusService, GlobalStatusService>();
+builder.Services.AddScoped<IMemberService, MemberService>();
 
 // RabbitMQ configuration
 builder.Services.Configure<RabbitMQSettings>(builder.Configuration.GetSection("RabbitMQ"));

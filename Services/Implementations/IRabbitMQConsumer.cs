@@ -62,6 +62,7 @@ public class RabbitMQConsumer : IRabbitMQConsumer, IDisposable
             _consumerTag = await _channel.BasicConsumeAsync(
                 queue: _settings.QueueName,
                 autoAck: false,
+                // If the consumer dies mid-work, RabbitMQ requeues the message.
                 consumer: consumer
             );
 
