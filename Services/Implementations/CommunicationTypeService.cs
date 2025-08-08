@@ -158,6 +158,22 @@ public class CommunicationTypeService : ICommunicationTypeService
         });
     }
 
+    // Get statuses for a type by its code
+    public async Task<IEnumerable<CommunicationTypeStatusResponse>> GetStatusesForTypeByCodeAsync(string typeCode)
+    {
+        // First get the type by code
+        var type = await _communicationTypeRepository.GetByTypeCodeAsync(typeCode);
+        
+        if (type == null)
+        {
+            _logger.LogWarning("Communication type with code '{TypeCode}' not found", typeCode);
+            return Enumerable.Empty<CommunicationTypeStatusResponse>();
+        }
+        
+        // Reuse the existing method that already handles the mapping
+        return await GetStatusesForTypeAsync(type.Id);
+    }
+
     // Helper method
     private async Task<CommunicationTypeResponse> MapToResponseAsync(CommunicationType type)
     {

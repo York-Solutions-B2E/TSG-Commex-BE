@@ -18,4 +18,5 @@ public interface ICommunicationTypeService
     Task<IEnumerable<int>> GetStatusIdsForTypeAsync(int typeId);
     Task<bool> UpdateStatusMappingsForTypeAsync(int typeId, List<int> statusIds);
     Task<IEnumerable<CommunicationTypeStatusResponse>> GetStatusesForTypeAsync(int typeId);
+    Task<IEnumerable<CommunicationTypeStatusResponse>> GetStatusesForTypeByCodeAsync(string typeCode);
 }

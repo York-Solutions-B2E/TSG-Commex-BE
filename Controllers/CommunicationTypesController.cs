@@ -183,6 +183,27 @@ public class CommunicationTypesController : ControllerBase
         }
     }
 
+    [HttpGet("{typeCode}/statuses")]
+    public async Task<ActionResult<IEnumerable<CommunicationTypeStatusResponse>>> GetStatusesForTypeByCode(string typeCode)
+    {
+        try
+        {
+            var statuses = await _communicationTypeService.GetStatusesForTypeByCodeAsync(typeCode);
+            
+            if (!statuses.Any())
+            {
+                return NotFound(new { message = $"No statuses found for communication type: {typeCode}" });
+            }
+            
+            return Ok(statuses);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving statuses for communication type: {TypeCode}", typeCode);
+            return StatusCode(500, new { message = "Error retrieving statuses" });
+        }
+    }
+
     [HttpGet("debug/check-data")]
     public async Task<IActionResult> CheckData([FromServices] ApplicationDbContext context)
     {
