@@ -21,6 +21,7 @@ public class CommunicationRepository : ICommunicationRepository
             .Where(c => c.IsActive == true) // Manual soft delete filter
             .Include(c => c.CommunicationType)
             .Include(c => c.CurrentStatus)
+            .Include(c => c.Member)
             .Include(c => c.CreatedByUser)
             .Include(c => c.LastUpdatedByUser)
             .OrderByDescending(c => c.LastUpdatedUtc)
@@ -44,6 +45,7 @@ public class CommunicationRepository : ICommunicationRepository
             .Where(c => c.IsActive == true) // Manual soft delete filter
             .Include(c => c.CommunicationType)
             .Include(c => c.CurrentStatus)
+            .Include(c => c.Member)
             .Include(c => c.CreatedByUser)
             .Include(c => c.LastUpdatedByUser)
             .Include(c => c.StatusHistory)
@@ -158,6 +160,7 @@ public class CommunicationRepository : ICommunicationRepository
             .Where(c => c.IsActive == true && c.CurrentStatusId == statusId) // Manual soft delete filter
             .Include(c => c.CommunicationType)
             .Include(c => c.CurrentStatus)
+            .Include(c => c.Member)
             .Include(c => c.CreatedByUser)
             .Include(c => c.LastUpdatedByUser)
             .OrderByDescending(c => c.LastUpdatedUtc)
@@ -170,6 +173,7 @@ public class CommunicationRepository : ICommunicationRepository
             .Where(c => c.IsActive == true && c.CommunicationTypeId == typeId) // Manual soft delete filter
             .Include(c => c.CommunicationType)
             .Include(c => c.CurrentStatus)
+            .Include(c => c.Member)
             .Include(c => c.CreatedByUser)
             .Include(c => c.LastUpdatedByUser)
             .OrderByDescending(c => c.LastUpdatedUtc)
@@ -229,6 +233,7 @@ public class CommunicationRepository : ICommunicationRepository
         return await _context.Communications
             .Include(c => c.CommunicationType)
             .Include(c => c.CurrentStatus)
+            .Include(c => c.Member)
             .Include(c => c.CreatedByUser)
             .Include(c => c.LastUpdatedByUser)
             .Where(c => c.IsActive == false)
