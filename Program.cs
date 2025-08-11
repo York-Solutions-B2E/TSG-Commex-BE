@@ -41,7 +41,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .Where(c => c.Type == "groups")
                 .Select(c => c.Value)
                 .ToList();
-            
+
             foreach (var group in groupsClaims)
             {
                 identity?.AddClaim(new Claim(ClaimTypes.Role, group));
@@ -58,10 +58,10 @@ builder.Services.AddAuthorization(options =>
     // Default policy requires authentication
     options.FallbackPolicy = options.DefaultPolicy;
 
-        // Admin-only policy (matching frontend role assignment)
+    // Admin-only policy (matching frontend role assignment)
     options.AddPolicy("AdminOnly", policy =>
         policy.RequireRole("Admin"));
-    
+
     // User or Admin policy  
     options.AddPolicy("UserOrAdmin", policy =>
         policy.RequireRole("User", "Admin"));
@@ -95,7 +95,6 @@ builder.Services.AddScoped<IMemberRepository, MemberRepository>();
 builder.Services.AddScoped<ICommunicationService, CommunicationService>();
 builder.Services.AddScoped<ICommunicationTypeService, CommunicationTypeService>();
 builder.Services.AddScoped<IEventProcessingService, EventProcessingService>();
-builder.Services.AddScoped<IWorkflowService, WorkflowService>();
 builder.Services.AddScoped<IGlobalStatusService, GlobalStatusService>();
 builder.Services.AddScoped<IMemberService, MemberService>();
 
@@ -127,10 +126,10 @@ _ = Task.Run(async () =>
         {
             ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
         });
-        
+
         var metadataUrl = $"{builder.Configuration["Okta:OktaDomain"]}/oauth2/default/.well-known/openid-configuration";
         logger.LogInformation("🔍 Testing connectivity to Okta metadata endpoint: {Url}", metadataUrl);
-        
+
         var response = await httpClient.GetAsync(metadataUrl);
         if (response.IsSuccessStatusCode)
         {
