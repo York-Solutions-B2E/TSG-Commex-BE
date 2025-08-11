@@ -42,21 +42,21 @@ public class CommunicationTypeStatusRepository : ICommunicationTypeStatusReposit
         var existingMappings = await _context.CommunicationTypeStatuses
             .Where(cts => cts.CommunicationTypeId == typeId)
             .ToListAsync();
-        
+
         var existingStatusIds = existingMappings
             .Where(m => m.IsActive)
             .Select(m => m.GlobalStatusId)
             .ToHashSet();
-        
+
         var newStatusIds = statusIds.ToHashSet();
-        
+
         // Determine what to add, remove, and reactivate
         var toAdd = newStatusIds.Except(existingMappings.Select(m => m.GlobalStatusId));
         var toDeactivate = existingStatusIds.Except(newStatusIds);
         var toReactivate = newStatusIds.Intersect(
             existingMappings.Where(m => !m.IsActive).Select(m => m.GlobalStatusId)
         );
-        
+
         // Deactivate removed mappings
         if (toDeactivate.Any())
         {
@@ -65,7 +65,7 @@ public class CommunicationTypeStatusRepository : ICommunicationTypeStatusReposit
                 mapping.IsActive = false;
             }
         }
-        
+
         // Reactivate previously deactivated mappings
         if (toReactivate.Any())
         {
@@ -74,7 +74,7 @@ public class CommunicationTypeStatusRepository : ICommunicationTypeStatusReposit
                 mapping.IsActive = true;
             }
         }
-        
+
         // Add new mappings
         if (toAdd.Any())
         {
@@ -89,9 +89,9 @@ public class CommunicationTypeStatusRepository : ICommunicationTypeStatusReposit
                 _context.CommunicationTypeStatuses.Add(mapping);
             }
         }
-        
+
         await _context.SaveChangesAsync();
-        
+
         // Return all active mappings
         return await GetStatusIdsForTypeAsync(typeId);
     }
@@ -109,29 +109,29 @@ public class CommunicationTypeStatusRepository : ICommunicationTypeStatusReposit
         var mappings = await _context.CommunicationTypeStatuses
             .Where(cts => cts.CommunicationTypeId == typeId)
             .ToListAsync();
-        
-        if (!mappings.Any())
+
+        if (mappings.Count == 0)
             return false;
-        
+
         _context.CommunicationTypeStatuses.RemoveRange(mappings);
         await _context.SaveChangesAsync();
-        
+
         return true;
     }
 
     public async Task<bool> DeleteSingleStatusMappingAsync(int typeId, int statusId)
     {
         var mapping = await _context.CommunicationTypeStatuses
-            .FirstOrDefaultAsync(cts => 
-                cts.CommunicationTypeId == typeId && 
+            .FirstOrDefaultAsync(cts =>
+                cts.CommunicationTypeId == typeId &&
                 cts.GlobalStatusId == statusId);
-        
+
         if (mapping == null)
             return false;
-        
+
         _context.CommunicationTypeStatuses.Remove(mapping);
         await _context.SaveChangesAsync();
-        
+
         return true;
     }
 }

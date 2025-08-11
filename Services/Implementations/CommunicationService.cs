@@ -102,7 +102,6 @@ public class CommunicationService : ICommunicationService
                 CurrentStatusId = statusId,
                 CreatedByUserId = request.CreatedByUserId,
                 IsActive = true
-                // Timestamps are set in the repository
             };
 
             // Call repository
@@ -110,7 +109,7 @@ public class CommunicationService : ICommunicationService
 
             // Set navigation properties that we already have
             createdCommunication.Member = member;
-            createdCommunication.CurrentStatus = await _globalStatusRepository.GetByIdAsync(statusId);
+            createdCommunication.CurrentStatus = await _globalStatusRepository.GetByIdAsync(statusId) ?? throw new InvalidOperationException($"Status with ID {statusId} not found");
             createdCommunication.CommunicationType = communicationType;
 
             // Map Domain Model → Response DTO
